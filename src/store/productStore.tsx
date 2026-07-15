@@ -8,6 +8,11 @@ interface ProductItem {
   mrp: number;
   price: number;
   images: string[];
+  maker: string;
+  model: string;
+  configuration: string;
+  year: string;
+  fuel: string;
   category: string;
   createdAt: string;
   updatedAt: string;
@@ -31,6 +36,11 @@ const fallbackProducts: ProductItem[] = [
     mrp: 100,
     price: 80,
     images: ["/placeholder-image.svg"],
+    maker: "Oxygen Auto",
+    model: "Essentials",
+    configuration: "Standard",
+    year: String(new Date().getFullYear()),
+    fuel: "Universal",
     category: "Automotive",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
