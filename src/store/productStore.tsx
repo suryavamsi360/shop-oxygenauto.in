@@ -18,14 +18,23 @@ interface ProductItem {
   updatedAt: string;
 }
 
+interface ProductQuery {
+  page?: number;
+  limit?: number;
+}
+
 interface ProductState {
   products: ProductItem[];
+  total: number;
+  page: number;
+  limit: number;
+  hasSearched: boolean;
   isLoading: boolean;
   error: string | null;
   setProducts: (products: ProductItem[]) => void;
   clearProducts: () => void;
   getProductById: (id: string) => ProductItem | undefined;
-  loadProducts: () => Promise<void>;
+  loadProducts: (query?: ProductQuery) => Promise<void>;
 }
 
 const fallbackProducts: ProductItem[] = [
@@ -48,7 +57,11 @@ const fallbackProducts: ProductItem[] = [
 ];
 
 export const useProductStore = create<ProductState>((set, get) => ({
-  products: fallbackProducts,
+  products: [],
+  total: 0,
+  page: 1,
+  limit: 12,
+  hasSearched: false,
   isLoading: false,
   error: null,
 
@@ -60,18 +73,33 @@ export const useProductStore = create<ProductState>((set, get) => ({
   clearProducts: () =>
     set({
       products: [],
+      total: 0,
+      page: 1,
+      hasSearched: false,
     }),
 
   getProductById: (id) => get().products.find((product) => product.id === id),
 
-  loadProducts: async () => {
+  loadProducts: async (query = {}) => {
     set({ isLoading: true, error: null });
     try {
-      const products = await fetchProducts();
-      set({ products, isLoading: false });
+      const response = await fetchProducts(query);
+      set({
+        products: response.products,
+        total: response.total,
+        page: response.page,
+        limit: response.limit,
+        hasSearched: true,
+        isLoading: false,
+      });
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : "Unknown error",
+        products: query.page && query.page > 1 ? [] : fallbackProducts,
+        total: query.page && query.page > 1 ? 0 : fallbackProducts.length,
+        page: query.page && query.page > 0 ? query.page : 1,
+        limit: query.limit && query.limit > 0 ? query.limit : 12,
+        hasSearched: true,
         isLoading: false,
       });
     }
