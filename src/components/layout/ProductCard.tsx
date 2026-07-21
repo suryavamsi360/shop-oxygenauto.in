@@ -23,6 +23,11 @@ interface Product {
   mrp?: number;
   price: number;
   images: string[];
+  maker: string;
+  model: string;
+  year: string;
+  configuration: string;
+  stockQuantity: number;
 }
 
 interface ProductCardProps {
@@ -58,6 +63,12 @@ const ProductCard = ({ product }: ProductCardProps) => {
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 break-words overflow-wrap-anywhere">
                 {product.name}
+              </p>
+              <p className="mt-1 line-clamp-1 text-xs text-slate-500">
+                {product.maker} | {product.model} | {product.year}
+              </p>
+              <p className="mt-1 line-clamp-1 text-xs text-slate-500">
+                {product.configuration} | Stock: {product.stockQuantity}
               </p>
             </div>
 

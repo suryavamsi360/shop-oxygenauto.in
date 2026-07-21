@@ -20,11 +20,24 @@ const getImageSrc = (images: string[] = []) => {
 };
 
 interface Product {
-  id: number;
+  id: string | number;
+  itemId: string;
   name: string;
+  description: string;
+  partNumber: string;
+  sku: string;
+  stockQuantity: number;
+  condition: string;
+  chassisNumber: string;
   price: number;
   mrp: number;
   images: string[];
+  maker: string;
+  model: string;
+  year: string;
+  category: string;
+  configuration: string;
+  fuel: string;
 }
 
 interface ProductDetailsProps {
@@ -41,7 +54,7 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
   const cart = useCartStore((state) => state.cartItems);
   const addToCart = useCartStore((state) => state.addToCart);
 
-  const productId = product.id;
+  const productId = Number(product.id);
 
   const addToCartHandler = () => {
     addToCart(productId);
@@ -129,8 +142,64 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
 
         <hr className="my-5 border-gray-300" />
 
+        <div className="grid grid-cols-1 gap-3 text-sm text-slate-600 lg:grid-cols-3">
+          <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <h3 className="mb-2 text-sm font-semibold text-slate-800">
+              Vehicle Info
+            </h3>
+            <p>
+              <span className="font-medium text-slate-700">Maker:</span>{" "}
+              {product.maker}
+            </p>
+            <p>
+              <span className="font-medium text-slate-700">Model:</span>{" "}
+              {product.model}
+            </p>
+            <p>
+              <span className="font-medium text-slate-700">Year:</span>{" "}
+              {product.year}
+            </p>
+          </section>
+
+          <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <h3 className="mb-2 text-sm font-semibold text-slate-800">
+              Product Category
+            </h3>
+            <p>
+              <span className="font-medium text-slate-700">Group:</span>{" "}
+              {product.category}
+            </p>
+            <p>
+              <span className="font-medium text-slate-700">Class:</span>{" "}
+              {product.configuration}
+            </p>
+            <p>
+              <span className="font-medium text-slate-700">Sub Class:</span>{" "}
+              {product.fuel}
+            </p>
+          </section>
+
+          <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <h3 className="mb-2 text-sm font-semibold text-slate-800">
+              Stock And Condition
+            </h3>
+            <p>
+              <span className="font-medium text-slate-700">Part Number:</span>{" "}
+              {product.partNumber}
+            </p>
+            <p>
+              <span className="font-medium text-slate-700">Stock:</span>{" "}
+              {product.stockQuantity}
+            </p>
+            <p>
+              <span className="font-medium text-slate-700">Condition:</span>{" "}
+              {product.condition}
+            </p>
+          </section>
+        </div>
+
         {/* Features */}
-        <div className="flex flex-col gap-4 text-slate-500">
+        <div className="flex flex-col gap-4 pt-5 text-slate-500">
           <p className="flex gap-3">
             <Truck className="text-slate-400" />
             Lowest Shipping Charges

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 import AddressModal from "./AddressModal";
 import { useAddressStore, type Address } from "../../store/addressStore";
+import { useCartStore } from "../../store/cartStore";
 
 interface OrderSummaryProps {
   totalPrice: number;
@@ -23,6 +24,8 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
   const addresses = useAddressStore((state) => state.addresses);
   const selectedAddressId = useAddressStore((state) => state.selectedAddressId);
   const selectAddress = useAddressStore((state) => state.selectAddress);
+  const clearCart = useCartStore((state) => state.clearCart);
+  const cartItems = useCartStore((state) => state.cartItems);
 
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [showAddressModal, setShowAddressModal] = useState(false);
@@ -38,7 +41,30 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
   const handlePlaceOrder = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    navigate("/orders");
+    const itemCount = Object.values(cartItems).reduce(
+      (sum, quantity) => sum + Number(quantity),
+      0,
+    );
+
+    const orderSummary = {
+      totalAmount: coupon
+        ? Number((totalPrice - (coupon.discount / 100) * totalPrice).toFixed(2))
+        : totalPrice,
+      paymentMethod,
+      itemCount,
+      distinctItems: Object.keys(cartItems).length,
+      orderedAt: new Date().toISOString(),
+      address: selectedAddress
+        ? `${selectedAddress.name}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.pincode}`
+        : "Address not selected",
+    };
+
+    clearCart();
+    navigate("/order-success", {
+      state: {
+        orderSummary,
+      },
+    });
   };
 
   return (

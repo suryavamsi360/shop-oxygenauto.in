@@ -3,8 +3,14 @@ import { fetchProducts } from "../services/productService";
 
 interface ProductItem {
   id: string;
+  itemId: string;
   name: string;
   description: string;
+  partNumber: string;
+  sku: string;
+  stockQuantity: number;
+  condition: string;
+  chassisNumber: string;
   mrp: number;
   price: number;
   images: string[];
@@ -36,25 +42,6 @@ interface ProductState {
   getProductById: (id: string) => ProductItem | undefined;
   loadProducts: (query?: ProductQuery) => Promise<void>;
 }
-
-const fallbackProducts: ProductItem[] = [
-  {
-    id: "prod_1",
-    name: "Oxygen Auto Essentials",
-    description: "Fallback product created while the API is unavailable.",
-    mrp: 100,
-    price: 80,
-    images: ["/placeholder-image.svg"],
-    maker: "Oxygen Auto",
-    model: "Essentials",
-    configuration: "Standard",
-    year: String(new Date().getFullYear()),
-    fuel: "Universal",
-    category: "Automotive",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
 
 export const useProductStore = create<ProductState>((set, get) => ({
   products: [],
@@ -94,9 +81,12 @@ export const useProductStore = create<ProductState>((set, get) => ({
       });
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : "Unknown error",
-        products: query.page && query.page > 1 ? [] : fallbackProducts,
-        total: query.page && query.page > 1 ? 0 : fallbackProducts.length,
+        error:
+          err instanceof Error
+            ? err.message
+            : "Something went wrong while loading products.",
+        products: [],
+        total: 0,
         page: query.page && query.page > 0 ? query.page : 1,
         limit: query.limit && query.limit > 0 ? query.limit : 12,
         hasSearched: true,

@@ -1,7 +1,13 @@
 interface ProductItem {
   id: string;
+  itemId: string;
   name: string;
   description: string;
+  partNumber: string;
+  sku: string;
+  stockQuantity: number;
+  condition: string;
+  chassisNumber: string;
   mrp: number;
   price: number;
   images: string[];
@@ -28,27 +34,35 @@ interface ProductResponse {
 }
 
 const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
-const PRODUCTS_API_URL = "https://dummyjson.com/products";
-const API_PAGE_SIZE = 100;
+const PRODUCTS_API_URL = "http://localhost:8000/api/zoho/export-json";
 
-const fallbackProducts: ProductItem[] = [
-  {
-    id: "prod_1",
-    name: "Oxygen Auto Essentials",
-    description: "Fallback product created while the API is unavailable.",
-    mrp: 100,
-    price: 80,
-    images: [PLACEHOLDER_IMAGE],
-    maker: "Oxygen Auto",
-    model: "Essentials",
-    configuration: "Standard",
-    year: String(new Date().getFullYear()),
-    fuel: "Universal",
-    category: "Automotive",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+interface ZohoProductItem {
+  "Item Id"?: string;
+  "Item Name"?: string;
+  "Part Number"?: string;
+  "Description:"?: string;
+  Description?: string;
+  Maker?: string;
+  Model?: string;
+  Year?: string;
+  "Stock Quantity"?: string;
+  SKU?: string;
+  "Market Price"?: string;
+  "Sale Price"?: string;
+  Group?: string;
+  Class?: string;
+  "Sub Class"?: string;
+  Condition?: string;
+  "Chassis Number"?: string;
+  "Created Time"?: string;
+}
+
+interface ZohoExportResponse {
+  status?: string;
+  data?: {
+    data?: ZohoProductItem[];
+  };
+}
 
 const normalizeImages = (images: unknown): string[] => {
   if (!Array.isArray(images)) {
@@ -69,37 +83,75 @@ const normalizeText = (value: unknown, fallbackValue: string): string => {
   return normalizedValue.length > 0 ? normalizedValue : fallbackValue;
 };
 
+const parseInrCurrency = (value: unknown): number => {
+  if (typeof value !== "string") {
+    return 0;
+  }
+
+  const numericValue = Number(value.replace(/[^\d.-]/g, ""));
+  return Number.isFinite(numericValue) ? numericValue : 0;
+};
+
+const parseNumber = (value: unknown): number => {
+  if (typeof value !== "string") {
+    return 0;
+  }
+
+  const numericValue = Number(value.replace(/[^\d.-]/g, ""));
+  return Number.isFinite(numericValue) ? numericValue : 0;
+};
+
 const normalizeProducts = (
-  rawProducts: Array<Record<string, unknown>>,
+  rawProducts: ZohoProductItem[],
 ): ProductItem[] => {
   return rawProducts.map((item, index) => {
-    const product = item as Record<string, unknown>;
-    const maker = normalizeText(product.brand, "Oxygen Auto");
-    const model = normalizeText(product.model, `Model ${index + 1}`);
-    const configuration = normalizeText(
-      product.configuration,
-      normalizeText(product.category, "Standard"),
+    const itemId = normalizeText(item["Item Id"], String(index + 1));
+    const name = normalizeText(item["Item Name"], `Product ${index + 1}`);
+    const partNumber = normalizeText(item["Part Number"], "N/A");
+    const sku = normalizeText(item.SKU, "N/A");
+    const maker = normalizeText(item.Maker, "Oxygen Auto");
+    const model = normalizeText(item.Model, `Model ${index + 1}`);
+    const group = normalizeText(item.Group, "General");
+    const className = normalizeText(item.Class, "Standard");
+    const subClass = normalizeText(item["Sub Class"], "");
+    const condition = normalizeText(item.Condition, "No condition details available.");
+    const apiDescription = normalizeText(
+      item["Description:"] ?? item.Description,
+      "",
     );
-    const year =
-      typeof product.year === "number" || typeof product.year === "string"
-        ? String(product.year)
-        : String(new Date().getFullYear());
-    const fuel = normalizeText(product.fuel, "Universal");
+    const chassisNumber = normalizeText(item["Chassis Number"], "N/A");
+    const stockQuantity = parseNumber(item["Stock Quantity"]);
+    const marketPrice = parseInrCurrency(item["Market Price"]);
+    const salePrice = parseInrCurrency(item["Sale Price"]);
+    const finalPrice = salePrice > 0 ? salePrice : marketPrice;
+    const finalMrp = marketPrice > 0 ? marketPrice : finalPrice;
 
     return {
-      id: String(product.id ?? `prod_${index + 1}`),
-      name: String(product.title ?? product.name ?? `Product ${index + 1}`),
-      description: String(product.description ?? "No description available."),
-      mrp: Number(product.price ?? 0) * 2,
-      price: Number(product.price ?? 0),
-      images: normalizeImages(product.images),
+      // Keep an integer-compatible id for cart keys while preserving order fallback.
+      id: String(index + 1),
+      itemId,
+      name,
+      description:
+        apiDescription.length > 0
+          ? apiDescription
+          : subClass.length > 0
+            ? `${className} / ${subClass}. ${condition}`
+            : `${className}. ${condition}`,
+      partNumber,
+      sku,
+      stockQuantity,
+      condition,
+      chassisNumber,
+      mrp: finalMrp,
+      price: finalPrice,
+      images: normalizeImages(undefined),
       maker,
       model,
-      configuration,
-      year,
-      fuel,
-      category: String(product.category ?? "General"),
-      createdAt: new Date().toISOString(),
+      configuration: className,
+      year: normalizeText(item.Year, String(new Date().getFullYear())),
+      fuel: normalizeText(subClass, "Universal"),
+      category: group,
+      createdAt: normalizeText(item["Created Time"], new Date().toISOString()),
       updatedAt: new Date().toISOString(),
     } satisfies ProductItem;
   });
@@ -109,35 +161,11 @@ export const fetchProducts = async (
   query: ProductQuery = {},
 ): Promise<ProductResponse> => {
   try {
-    const firstResponse = await fetch(
-      `${PRODUCTS_API_URL}?limit=${API_PAGE_SIZE}&skip=0`,
-    );
-    if (!firstResponse.ok) throw new Error("Failed to fetch products");
+    const response = await fetch(PRODUCTS_API_URL);
+    if (!response.ok) throw new Error("Failed to fetch products");
 
-    const firstPayload = (await firstResponse.json()) as {
-      products?: Array<Record<string, unknown>>;
-      total?: number;
-    };
-
-    const totalFromApi =
-      typeof firstPayload.total === "number" ? firstPayload.total : 0;
-    const rawProducts = [...(firstPayload.products ?? [])];
-
-    for (let skip = API_PAGE_SIZE; skip < totalFromApi; skip += API_PAGE_SIZE) {
-      const pagedResponse = await fetch(
-        `${PRODUCTS_API_URL}?limit=${API_PAGE_SIZE}&skip=${skip}`,
-      );
-
-      if (!pagedResponse.ok) {
-        throw new Error("Failed to fetch products");
-      }
-
-      const pagedPayload = (await pagedResponse.json()) as {
-        products?: Array<Record<string, unknown>>;
-      };
-
-      rawProducts.push(...(pagedPayload.products ?? []));
-    }
+    const payload = (await response.json()) as ZohoExportResponse;
+    const rawProducts = payload.data?.data ?? [];
 
     const normalizedProducts = normalizeProducts(rawProducts);
 
@@ -155,15 +183,11 @@ export const fetchProducts = async (
       page,
       limit,
     };
-  } catch {
-    const page = query.page && query.page > 0 ? query.page : 1;
-    const limit = query.limit && query.limit > 0 ? query.limit : 12;
-
-    return {
-      products: page === 1 ? fallbackProducts : [],
-      total: page === 1 ? fallbackProducts.length : 0,
-      page,
-      limit,
-    };
+  } catch (error) {
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : "Something went wrong while loading products.",
+    );
   }
 };
