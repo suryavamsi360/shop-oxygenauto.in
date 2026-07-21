@@ -34,7 +34,7 @@ interface ProductResponse {
 }
 
 const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
-const PRODUCTS_API_URL = "http://localhost:8000/api/zoho/export-json";
+const PRODUCTS_API_URL = "https://api-oxygen-auto.onrender.com/api/zoho/export-json";
 
 interface ZohoProductItem {
   "Item Id"?: string;
