@@ -55,9 +55,15 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
   const addToCart = useCartStore((state) => state.addToCart);
 
   const productId = Number(product.id);
+  const quantity = cart[productId] ?? 0;
+  const isOutOfStock = product.stockQuantity <= 0;
 
   const addToCartHandler = () => {
-    addToCart(productId);
+    if (isOutOfStock || quantity >= product.stockQuantity) {
+      return;
+    }
+
+    addToCart(productId, product.stockQuantity);
   };
 
   return (
@@ -125,7 +131,7 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
             <div className="flex flex-col gap-3">
               <p className="text-lg font-semibold text-slate-800">Quantity</p>
 
-              <Counter productId={productId} />
+              <Counter productId={productId} maxStock={product.stockQuantity} />
             </div>
           )}
 
@@ -134,9 +140,14 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
             onClick={() =>
               !cart[productId] ? addToCartHandler() : navigate("/cart")
             }
+            disabled={!cart[productId] && isOutOfStock}
             className="rounded-full bg-gradient-to-r from-slate-800 to-slate-700 px-8 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-900 hover:shadow-lg active:scale-95"
           >
-            {!cart[productId] ? "Add to Cart" : "View Cart"}
+            {!cart[productId]
+              ? isOutOfStock
+                ? "Out of Stock"
+                : "Add to Cart"
+              : "View Cart"}
           </button>
         </div>
 

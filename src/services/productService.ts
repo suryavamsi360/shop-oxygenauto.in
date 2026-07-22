@@ -1,6 +1,7 @@
 interface ProductItem {
   id: string;
   itemId: string;
+  sourceReferenceId: string;
   name: string;
   description: string;
   partNumber: string;
@@ -47,11 +48,12 @@ interface ProductResponse {
 }
 
 const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
-const PRODUCTS_API_URL = "https://api-oxygen-auto.onrender.com/api/zoho/export-json";
+const PRODUCTS_API_URL = "http://localhost:8000/api/zoho/export-json";
 
 interface ZohoItemFields {
   "Item ID"?: string;
   "Item Name"?: string;
+  "Reference Id"?: string;
   "Part Number"?: string;
   "Sales Description"?: string;
   Description?: string;
@@ -82,6 +84,8 @@ interface ZohoCompatibilityItem {
   Line?: string;
   Model?: string;
   Configuration?: string;
+  "Start Date"?: string;
+  "End Date"?: string;
   "Fuel Type"?: string;
   "Engine Volume"?: string;
   "Body Type"?: string;
@@ -136,6 +140,56 @@ const parseNumber = (value: unknown): number => {
   return Number.isFinite(numericValue) ? numericValue : 0;
 };
 
+const extractYear = (value: unknown): string => {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const normalizedValue = value.trim();
+  if (!normalizedValue) {
+    return "";
+  }
+
+  const yearMatch = normalizedValue.match(/\b(\d{4})\b/);
+  return yearMatch?.[1] ?? normalizedValue;
+};
+
+const formatMonthYear = (value: unknown, fallbackYear: string): string => {
+  if (typeof value !== "string") {
+    return `01-${fallbackYear}`;
+  }
+
+  const normalizedValue = value.trim();
+  if (!normalizedValue) {
+    return `01-${fallbackYear}`;
+  }
+
+  const parsedDate = new Date(normalizedValue.replace(" ", "T"));
+  if (!Number.isNaN(parsedDate.getTime())) {
+    const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+    const year = String(parsedDate.getFullYear());
+    return `${month}-${year}`;
+  }
+
+  const yearOnly = extractYear(normalizedValue);
+  if (yearOnly) {
+    return `01-${yearOnly}`;
+  }
+
+  return `01-${fallbackYear}`;
+};
+
+const formatCompatibilityYear = (
+  startDate: unknown,
+  endDate: unknown,
+  fallbackYear: string,
+): string => {
+  const startMonthYear = formatMonthYear(startDate, fallbackYear);
+  const endMonthYear = formatMonthYear(endDate, fallbackYear);
+
+  return `${startMonthYear} to ${endMonthYear}`;
+};
+
 const normalizeCompatibilityList = (
   compatibilityItems: ZohoCompatibilityItem[] | undefined,
   year: string,
@@ -149,7 +203,7 @@ const normalizeCompatibilityList = (
     line: normalizeText(entry.Line, ""),
     model: normalizeText(entry.Model, ""),
     configuration: normalizeText(entry.Configuration, ""),
-    year,
+    year: formatCompatibilityYear(entry["Start Date"], entry["End Date"], year),
     fuel: normalizeText(entry["Fuel Type"], ""),
     engineVolume: normalizeText(entry["Engine Volume"], ""),
     bodyType: normalizeText(entry["Body Type"], ""),
@@ -169,6 +223,7 @@ const normalizeProducts = (
       String(index + 1),
     );
     const name = normalizeText(item["Item Name"], `Product ${index + 1}`);
+    const sourceReferenceId = normalizeText(item["Reference Id"], "N/A");
     const partNumber = normalizeText(item["Part Number"], "N/A");
     const sku = normalizeText(item.SKU, "N/A");
     const maker =
@@ -202,6 +257,7 @@ const normalizeProducts = (
       // Keep an integer-compatible id for cart keys while preserving order fallback.
       id: String(index + 1),
       itemId,
+      sourceReferenceId,
       name,
       description:
         apiDescription.length > 0

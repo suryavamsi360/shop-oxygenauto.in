@@ -15,6 +15,7 @@ interface CompatibilityItem {
 interface ProductItem {
   id: string;
   itemId: string;
+  sourceReferenceId: string;
   name: string;
   description: string;
   partNumber: string;

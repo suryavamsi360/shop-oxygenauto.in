@@ -4,7 +4,7 @@ interface CartState {
   total: number;
   cartItems: Record<number, number>;
 
-  addToCart: (productId: number) => void;
+  addToCart: (productId: number, maxStock?: number) => void;
   removeFromCart: (productId: number) => void;
   deleteItem: (productId: number) => void;
   clearCart: () => void;
@@ -29,11 +29,16 @@ export const useCartStore = create<CartState>((set) => ({
   total: getStoredCart().total,
   cartItems: getStoredCart().cartItems,
 
-  addToCart: (productId) =>
+  addToCart: (productId, maxStock) =>
     set((state) => {
       const cartItems = { ...state.cartItems };
+      const currentQuantity = cartItems[productId] || 0;
 
-      cartItems[productId] = (cartItems[productId] || 0) + 1;
+      if (typeof maxStock === "number" && currentQuantity >= maxStock) {
+        return state;
+      }
+
+      cartItems[productId] = currentQuantity + 1;
       const nextState = {
         cartItems,
         total: state.total + 1,

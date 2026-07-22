@@ -121,7 +121,10 @@ export default function Cart() {
                   </td>
 
                   <td className="text-center">
-                    <Counter productId={item.id} />
+                    <Counter
+                      productId={item.id}
+                      maxStock={item.stockQuantity}
+                    />
                   </td>
 
                   <td className="text-center">

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import ProductCompatibilityList from "../../src/components/layout/ProductCompatibilityList";
 import ProductDescription from "../../src/components/layout/ProductDescription";
 import ProductDetails from "../../src/components/layout/ProductDetails";
+import ProductTestingInfo from "../../src/components/layout/ProductTestingInfo";
 
 import { useProductStore } from "../../src/store/productStore";
 
@@ -52,6 +54,12 @@ const Product = () => {
 
         {/* Description */}
         {product && <ProductDescription product={product} />}
+
+        {/* Testing Data */}
+        {product && <ProductTestingInfo product={product} />}
+
+        {/* Compatibility List */}
+        {product && <ProductCompatibilityList product={product} />}
       </div>
     </div>
   );

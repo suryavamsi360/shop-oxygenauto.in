@@ -40,45 +40,61 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const quantity = useCartStore(
     (state) => state.cartItems[Number(product.id)] ?? 0,
   );
+  const discountPercent =
+    product.mrp && product.mrp > product.price
+      ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
+      : 0;
 
   const handleAddToCart = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    addToCart(Number(product.id));
+
+    if (product.stockQuantity <= 0 || quantity >= product.stockQuantity) {
+      return;
+    }
+
+    addToCart(Number(product.id), product.stockQuantity);
   };
 
+  const isOutOfStock = product.stockQuantity <= 0;
+
   return (
-    <div className="group mx-auto block w-full max-w-[15rem] min-w-0 overflow-hidden">
+    <div className="group mx-auto flex h-full w-full max-w-[14rem] min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <Link to={`/products/${product.id}`} className="block">
         <div>
-          <div className="flex h-40 items-center justify-center rounded-lg bg-[#F5F5F5] sm:h-68 sm:w-60">
+          <div className="relative flex h-36 items-center justify-center overflow-hidden rounded-lg bg-[#F5F5F5] sm:h-60 sm:w-56">
+            {discountPercent > 0 && (
+              <span className="absolute left-2.5 top-2.5 rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white shadow-sm">
+                {discountPercent}% OFF
+              </span>
+            )}
             <img
               src={getImageSrc(product.images)}
               alt={product.name}
-              className="max-h-30 w-auto transition duration-300 group-hover:scale-110 sm:max-h-40"
+              className="absolute inset-0 m-auto h-full max-h-[88%] w-full max-w-[88%] object-contain object-center transition duration-300 group-hover:scale-105"
             />
           </div>
 
-          <div className="flex justify-between gap-3 pt-2 text-sm text-slate-800">
-            <div className="min-w-0 flex-1">
-              <p className="line-clamp-2 break-words overflow-wrap-anywhere">
+          <div className="mt-2 space-y-1.5 p-3 text-slate-800">
+            <div className="min-w-0">
+              <p className="line-clamp-2 break-words text-sm font-semibold leading-snug text-slate-900 overflow-wrap-anywhere">
                 {product.name}
-              </p>
-              <p className="mt-1 line-clamp-1 text-xs text-slate-500">
-                {product.maker} | {product.model} | {product.year}
-              </p>
-              <p className="mt-1 line-clamp-1 text-xs text-slate-500">
-                {product.configuration} | Stock: {product.stockQuantity}
               </p>
             </div>
 
-            <div className="flex shrink-0 flex-col items-end gap-1 rounded-md bg-green-50 px-2 py-1">
-              <p className="text-base font-bold whitespace-nowrap text-slate-900">
-                {currency}
-                {product.price}
-              </p>
+            <div className="flex items-end justify-between gap-2 rounded-lg bg-slate-50 p-3 ">
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
+                  Sale price
+                </p>
+                <p className="text-base font-bold whitespace-nowrap text-slate-900">
+                  {currency}
+                  {product.price}
+                </p>
+              </div>
+
               {product.mrp && product.mrp > product.price && (
-                <p className="text-xs font-medium text-slate-400 line-through">
+                <p className="text-[11px] font-medium whitespace-nowrap text-slate-400 line-through">
                   {currency}
                   {product.mrp}
                 </p>
@@ -90,16 +106,20 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
       {quantity > 0 ? (
         <div className="mt-2 flex justify-center">
-          <Counter productId={Number(product.id)} />
+          <Counter
+            productId={Number(product.id)}
+            maxStock={product.stockQuantity}
+          />
         </div>
       ) : (
-        <div className="mt-2 flex py-2 justify-center">
+        <div className="mt-2 flex justify-center p-1">
           <button
             type="button"
             onClick={handleAddToCart}
-            className="w-1/2 rounded-full bg-gradient-to-r from-slate-800 to-slate-700 px-2.5 py-2.5 text-[11px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
+            disabled={isOutOfStock}
+            className="w-full rounded-full bg-gradient-to-r from-slate-800 to-slate-700 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
           >
-            Add to Cart
+            {isOutOfStock ? "Out of Stock" : "Add to Cart"}
           </button>
         </div>
       )}
