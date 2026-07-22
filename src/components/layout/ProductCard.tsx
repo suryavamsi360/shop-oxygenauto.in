@@ -64,14 +64,14 @@ const ProductCard = ({ product }: ProductCardProps) => {
         <div>
           <div className="relative flex h-36 items-center justify-center overflow-hidden rounded-lg bg-[#F5F5F5] sm:h-60 sm:w-56">
             {discountPercent > 0 && (
-              <span className="absolute left-2.5 top-2.5 rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white shadow-sm">
+              <span className="absolute left-2.5 top-2.5 z-20 rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white shadow-sm">
                 {discountPercent}% OFF
               </span>
             )}
             <img
               src={getImageSrc(product.images)}
               alt={product.name}
-              className="absolute inset-0 m-auto h-full max-h-[88%] w-full max-w-[88%] object-contain object-center transition duration-300 group-hover:scale-105"
+              className="absolute inset-0 z-0 m-auto h-full max-h-[88%] w-full max-w-[88%] object-contain object-center transition duration-300 group-hover:scale-105"
             />
           </div>
 
