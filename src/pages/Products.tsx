@@ -56,6 +56,36 @@ const matchesFilterValue = (productValue: string, filterValue: string) =>
     ? productValue.toLowerCase().includes(filterValue.toLowerCase())
     : true;
 
+const matchesCompatibilityValue = (values: string[], filterValue: string) => {
+  if (!filterValue) {
+    return true;
+  }
+
+  const normalizedFilterValue = filterValue.toLowerCase();
+
+  return values.some((value) =>
+    value.toLowerCase().includes(normalizedFilterValue),
+  );
+};
+
+interface CompatibilityFilterProduct {
+  compatibilityList: Array<{
+    maker: string;
+    model: string;
+    configuration: string;
+    year: string;
+    fuel: string;
+  }>;
+}
+
+const getCompatibilityValues = (
+  product: CompatibilityFilterProduct,
+  key: "maker" | "model" | "configuration" | "year" | "fuel",
+) => {
+  const values = product.compatibilityList.map((entry) => entry[key]);
+  return getUniqueValues(values);
+};
+
 const Shop = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -79,21 +109,18 @@ const Shop = () => {
         ? product.name.toLowerCase().includes(normalizedSearch)
         : true;
 
-      const matchesMaker = normalizedFilters.maker
-        ? product.maker
-            .toLowerCase()
-            .includes(normalizedFilters.maker.toLowerCase())
-        : true;
-      const matchesModel = normalizedFilters.model
-        ? product.model
-            .toLowerCase()
-            .includes(normalizedFilters.model.toLowerCase())
-        : true;
-      const matchesYear = normalizedFilters.year
-        ? product.year
-            .toLowerCase()
-            .includes(normalizedFilters.year.toLowerCase())
-        : true;
+      const matchesMaker = matchesCompatibilityValue(
+        getCompatibilityValues(product, "maker"),
+        normalizedFilters.maker,
+      );
+      const matchesModel = matchesCompatibilityValue(
+        getCompatibilityValues(product, "model"),
+        normalizedFilters.model,
+      );
+      const matchesYear = matchesCompatibilityValue(
+        getCompatibilityValues(product, "year"),
+        normalizedFilters.year,
+      );
       const matchesGroup = normalizedFilters.group
         ? product.category
             .toLowerCase()
@@ -105,7 +132,7 @@ const Shop = () => {
             .includes(normalizedFilters.className.toLowerCase())
         : true;
       const matchesSubClass = normalizedFilters.subClass
-        ? product.fuel
+        ? product.subCategory
             .toLowerCase()
             .includes(normalizedFilters.subClass.toLowerCase())
         : true;
@@ -144,6 +171,24 @@ const Shop = () => {
             return true;
           }
 
+          if (key === "maker") {
+            return matchesCompatibilityValue(
+              getCompatibilityValues(product, "maker"),
+              filters.maker,
+            );
+          }
+          if (key === "model") {
+            return matchesCompatibilityValue(
+              getCompatibilityValues(product, "model"),
+              filters.model,
+            );
+          }
+          if (key === "year") {
+            return matchesCompatibilityValue(
+              getCompatibilityValues(product, "year"),
+              filters.year,
+            );
+          }
           if (key === "group") {
             return matchesFilterValue(product.category, filters.group);
           }
@@ -151,7 +196,7 @@ const Shop = () => {
             return matchesFilterValue(product.configuration, filters.className);
           }
           if (key === "subClass") {
-            return matchesFilterValue(product.fuel, filters.subClass);
+            return matchesFilterValue(product.subCategory, filters.subClass);
           }
 
           return matchesFilterValue(product[key], filters[key]);
@@ -159,15 +204,24 @@ const Shop = () => {
       });
     };
 
+    const compatibilityProductsForMakers = getRelevantProducts("maker");
+    const compatibilityProductsForModels = getRelevantProducts("model");
+    const compatibilityProductsForYears = getRelevantProducts("year");
     return {
       makers: getUniqueValues(
-        getRelevantProducts("maker").map((product) => product.maker),
+        compatibilityProductsForMakers.flatMap((product) =>
+          getCompatibilityValues(product, "maker"),
+        ),
       ),
       models: getUniqueValues(
-        getRelevantProducts("model").map((product) => product.model),
+        compatibilityProductsForModels.flatMap((product) =>
+          getCompatibilityValues(product, "model"),
+        ),
       ),
       years: getUniqueValues(
-        getRelevantProducts("year").map((product) => product.year),
+        compatibilityProductsForYears.flatMap((product) =>
+          getCompatibilityValues(product, "year"),
+        ),
       ).sort((a, b) => Number(b) - Number(a)),
       groups: getUniqueValues(
         getRelevantProducts("group").map((product) => product.category),
@@ -178,7 +232,7 @@ const Shop = () => {
         ),
       ),
       subClasses: getUniqueValues(
-        getRelevantProducts("subClass").map((product) => product.fuel),
+        getRelevantProducts("subClass").map((product) => product.subCategory),
       ),
     };
   }, [products, filters]);

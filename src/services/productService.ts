@@ -17,8 +17,21 @@ interface ProductItem {
   year: string;
   fuel: string;
   category: string;
+  subCategory: string;
+  compatibilityList: CompatibilityItem[];
   createdAt: string;
   updatedAt: string;
+}
+
+interface CompatibilityItem {
+  maker: string;
+  line: string;
+  model: string;
+  configuration: string;
+  year: string;
+  fuel: string;
+  engineVolume: string;
+  bodyType: string;
 }
 
 interface ProductQuery {
@@ -36,32 +49,54 @@ interface ProductResponse {
 const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
 const PRODUCTS_API_URL = "https://api-oxygen-auto.onrender.com/api/zoho/export-json";
 
-interface ZohoProductItem {
-  "Item Id"?: string;
+interface ZohoItemFields {
+  "Item ID"?: string;
   "Item Name"?: string;
   "Part Number"?: string;
-  "Description:"?: string;
+  "Sales Description"?: string;
   Description?: string;
-  Maker?: string;
-  Model?: string;
-  Year?: string;
-  "Stock Quantity"?: string;
   SKU?: string;
+  MRP?: string;
   "Market Price"?: string;
   "Sale Price"?: string;
+  "Sales Price"?: string;
   Group?: string;
   Class?: string;
   "Sub Class"?: string;
   Condition?: string;
+  Quantity?: string;
+  "Stock Quantity"?: string;
+  "Source Chassis Number"?: string;
   "Chassis Number"?: string;
+  Year?: string;
   "Created Time"?: string;
+  "Last Modified Time"?: string;
+  Maker?: string;
+  Line?: string;
+  Configuration?: string;
+  Fuel?: string;
+}
+
+interface ZohoCompatibilityItem {
+  Maker?: string;
+  Line?: string;
+  Model?: string;
+  Configuration?: string;
+  "Fuel Type"?: string;
+  "Engine Volume"?: string;
+  "Body Type"?: string;
+}
+
+interface ZohoProductRecord {
+  item_id?: string;
+  module_record_id?: string;
+  item?: ZohoItemFields;
+  comp_list?: ZohoCompatibilityItem[];
 }
 
 interface ZohoExportResponse {
   status?: string;
-  data?: {
-    data?: ZohoProductItem[];
-  };
+  data?: ZohoProductRecord[];
 }
 
 const normalizeImages = (images: unknown): string[] => {
@@ -101,28 +136,65 @@ const parseNumber = (value: unknown): number => {
   return Number.isFinite(numericValue) ? numericValue : 0;
 };
 
+const normalizeCompatibilityList = (
+  compatibilityItems: ZohoCompatibilityItem[] | undefined,
+  year: string,
+): CompatibilityItem[] => {
+  if (!Array.isArray(compatibilityItems)) {
+    return [];
+  }
+
+  return compatibilityItems.map((entry) => ({
+    maker: normalizeText(entry.Maker, ""),
+    line: normalizeText(entry.Line, ""),
+    model: normalizeText(entry.Model, ""),
+    configuration: normalizeText(entry.Configuration, ""),
+    year,
+    fuel: normalizeText(entry["Fuel Type"], ""),
+    engineVolume: normalizeText(entry["Engine Volume"], ""),
+    bodyType: normalizeText(entry["Body Type"], ""),
+  }));
+};
+
 const normalizeProducts = (
-  rawProducts: ZohoProductItem[],
+  rawProducts: ZohoProductRecord[],
 ): ProductItem[] => {
-  return rawProducts.map((item, index) => {
-    const itemId = normalizeText(item["Item Id"], String(index + 1));
+  return rawProducts.map((record, index) => {
+    const item = record.item ?? {};
+    const year = normalizeText(item.Year, String(new Date().getFullYear()));
+    const compatibilityList = normalizeCompatibilityList(record.comp_list, year);
+    const primaryCompatibility = compatibilityList[0];
+    const itemId = normalizeText(
+      record.item_id ?? item["Item ID"],
+      String(index + 1),
+    );
     const name = normalizeText(item["Item Name"], `Product ${index + 1}`);
     const partNumber = normalizeText(item["Part Number"], "N/A");
     const sku = normalizeText(item.SKU, "N/A");
-    const maker = normalizeText(item.Maker, "Oxygen Auto");
-    const model = normalizeText(item.Model, `Model ${index + 1}`);
+    const maker =
+      primaryCompatibility?.maker || normalizeText(item.Maker, "Oxygen Auto");
+    const model =
+      primaryCompatibility?.model || normalizeText(item.Line, `Model ${index + 1}`);
     const group = normalizeText(item.Group, "General");
     const className = normalizeText(item.Class, "Standard");
     const subClass = normalizeText(item["Sub Class"], "");
-    const condition = normalizeText(item.Condition, "No condition details available.");
+    const condition = normalizeText(
+      item.Condition,
+      "No condition details available.",
+    );
     const apiDescription = normalizeText(
-      item["Description:"] ?? item.Description,
+      item["Sales Description"] ?? item.Description,
       "",
     );
-    const chassisNumber = normalizeText(item["Chassis Number"], "N/A");
-    const stockQuantity = parseNumber(item["Stock Quantity"]);
-    const marketPrice = parseInrCurrency(item["Market Price"]);
-    const salePrice = parseInrCurrency(item["Sale Price"]);
+    const chassisNumber = normalizeText(
+      item["Source Chassis Number"] ?? item["Chassis Number"],
+      "N/A",
+    );
+    const stockQuantity = parseNumber(item.Quantity ?? item["Stock Quantity"]);
+    const marketPrice = parseInrCurrency(item.MRP ?? item["Market Price"]);
+    const salePrice = parseInrCurrency(
+      item["Sale Price"] ?? item["Sales Price"],
+    );
     const finalPrice = salePrice > 0 ? salePrice : marketPrice;
     const finalMrp = marketPrice > 0 ? marketPrice : finalPrice;
 
@@ -147,12 +219,18 @@ const normalizeProducts = (
       images: normalizeImages(undefined),
       maker,
       model,
-      configuration: className,
-      year: normalizeText(item.Year, String(new Date().getFullYear())),
-      fuel: normalizeText(subClass, "Universal"),
+      configuration:
+        primaryCompatibility?.configuration || normalizeText(item.Configuration, className),
+      year,
+      fuel: primaryCompatibility?.fuel || normalizeText(item.Fuel, "Universal"),
       category: group,
+      subCategory: subClass,
+      compatibilityList,
       createdAt: normalizeText(item["Created Time"], new Date().toISOString()),
-      updatedAt: new Date().toISOString(),
+      updatedAt: normalizeText(
+        item["Last Modified Time"],
+        new Date().toISOString(),
+      ),
     } satisfies ProductItem;
   });
 };
@@ -165,7 +243,7 @@ export const fetchProducts = async (
     if (!response.ok) throw new Error("Failed to fetch products");
 
     const payload = (await response.json()) as ZohoExportResponse;
-    const rawProducts = payload.data?.data ?? [];
+    const rawProducts = payload.data ?? [];
 
     const normalizedProducts = normalizeProducts(rawProducts);
 
@@ -176,6 +254,19 @@ export const fetchProducts = async (
       query.page || query.limit
         ? normalizedProducts.slice((page - 1) * limit, page * limit)
         : normalizedProducts;
+
+    console.info("Products API connection successful", {
+      url: PRODUCTS_API_URL,
+      status: response.status,
+      statusText: response.statusText,
+      query,
+      rawCount: rawProducts.length,
+      normalizedCount: normalizedProducts.length,
+      returnedCount: paginatedProducts.length,
+      page,
+      limit,
+      apiStatus: payload.status,
+    });
 
     return {
       products: paginatedProducts,

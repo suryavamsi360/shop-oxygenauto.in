@@ -1,6 +1,17 @@
 import { create } from "zustand";
 import { fetchProducts } from "../services/productService";
 
+interface CompatibilityItem {
+  maker: string;
+  line: string;
+  model: string;
+  configuration: string;
+  year: string;
+  fuel: string;
+  engineVolume: string;
+  bodyType: string;
+}
+
 interface ProductItem {
   id: string;
   itemId: string;
@@ -20,6 +31,8 @@ interface ProductItem {
   year: string;
   fuel: string;
   category: string;
+  subCategory: string;
+  compatibilityList: CompatibilityItem[];
   createdAt: string;
   updatedAt: string;
 }
