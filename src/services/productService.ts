@@ -48,7 +48,7 @@ interface ProductResponse {
 }
 
 const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
-const PRODUCTS_API_URL = "http://localhost:8000/api/zoho/export-json";
+const PRODUCTS_API_URL = import.meta.env.VITE_PRODUCTS_API_URL;
 
 interface ZohoItemFields {
   "Item ID"?: string;
@@ -295,6 +295,10 @@ export const fetchProducts = async (
   query: ProductQuery = {},
 ): Promise<ProductResponse> => {
   try {
+    if (!PRODUCTS_API_URL) {
+      throw new Error("VITE_PRODUCTS_API_URL is not configured.");
+    }
+
     const response = await fetch(PRODUCTS_API_URL);
     if (!response.ok) throw new Error("Failed to fetch products");
 
