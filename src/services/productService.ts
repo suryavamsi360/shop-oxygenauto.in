@@ -14,6 +14,7 @@ interface ProductItem {
   images: string[];
   maker: string;
   model: string;
+  className: string;
   configuration: string;
   year: string;
   fuel: string;
@@ -275,6 +276,7 @@ const normalizeProducts = (
       images: normalizeImages(undefined),
       maker,
       model,
+      className,
       configuration:
         primaryCompatibility?.configuration || normalizeText(item.Configuration, className),
       year,

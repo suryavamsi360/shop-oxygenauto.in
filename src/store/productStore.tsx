@@ -28,6 +28,7 @@ interface ProductItem {
   images: string[];
   maker: string;
   model: string;
+  className: string;
   configuration: string;
   year: string;
   fuel: string;

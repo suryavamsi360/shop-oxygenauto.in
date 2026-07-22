@@ -105,10 +105,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
       </Link>
 
       {quantity > 0 ? (
-        <div className="mt-2 flex justify-center">
+        <div className="mt-2 flex justify-center p-1">
           <Counter
             productId={Number(product.id)}
             maxStock={product.stockQuantity}
+            className="w-1/2 justify-between"
           />
         </div>
       ) : (
@@ -117,7 +118,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             type="button"
             onClick={handleAddToCart}
             disabled={isOutOfStock}
-            className="w-full rounded-full bg-gradient-to-r from-slate-800 to-slate-700 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
+            className="h-9 w-1/2 rounded-full bg-gradient-to-r from-slate-800 to-slate-700 px-3 text-[11px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
           >
             {isOutOfStock ? "Out of Stock" : "Add to Cart"}
           </button>

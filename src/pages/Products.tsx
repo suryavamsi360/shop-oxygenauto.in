@@ -11,6 +11,7 @@ interface FilterState {
   maker: string;
   model: string;
   year: string;
+  fuelType: string;
   group: string;
   className: string;
   subClass: string;
@@ -20,6 +21,7 @@ const INITIAL_FILTERS: FilterState = {
   maker: "",
   model: "",
   year: "",
+  fuelType: "",
   group: "",
   className: "",
   subClass: "",
@@ -29,6 +31,7 @@ const FILTER_KEYS: Array<keyof FilterState> = [
   "maker",
   "model",
   "year",
+  "fuelType",
   "group",
   "className",
   "subClass",
@@ -40,6 +43,7 @@ const normalizeFilters = (filters: FilterState): FilterState => ({
   maker: filters.maker.trim(),
   model: filters.model.trim(),
   year: filters.year.trim(),
+  fuelType: filters.fuelType.trim(),
   group: filters.group.trim(),
   className: filters.className.trim(),
   subClass: filters.subClass.trim(),
@@ -121,13 +125,17 @@ const Shop = () => {
         getCompatibilityValues(product, "year"),
         normalizedFilters.year,
       );
+      const matchesFuelType = matchesCompatibilityValue(
+        getCompatibilityValues(product, "fuel"),
+        normalizedFilters.fuelType,
+      );
       const matchesGroup = normalizedFilters.group
         ? product.category
             .toLowerCase()
             .includes(normalizedFilters.group.toLowerCase())
         : true;
       const matchesClass = normalizedFilters.className
-        ? product.configuration
+        ? product.className
             .toLowerCase()
             .includes(normalizedFilters.className.toLowerCase())
         : true;
@@ -142,6 +150,7 @@ const Shop = () => {
         matchesMaker &&
         matchesModel &&
         matchesYear &&
+        matchesFuelType &&
         matchesGroup &&
         matchesClass &&
         matchesSubClass
@@ -189,11 +198,17 @@ const Shop = () => {
               filters.year,
             );
           }
+          if (key === "fuelType") {
+            return matchesCompatibilityValue(
+              getCompatibilityValues(product, "fuel"),
+              filters.fuelType,
+            );
+          }
           if (key === "group") {
             return matchesFilterValue(product.category, filters.group);
           }
           if (key === "className") {
-            return matchesFilterValue(product.configuration, filters.className);
+            return matchesFilterValue(product.className, filters.className);
           }
           if (key === "subClass") {
             return matchesFilterValue(product.subCategory, filters.subClass);
@@ -207,6 +222,7 @@ const Shop = () => {
     const compatibilityProductsForMakers = getRelevantProducts("maker");
     const compatibilityProductsForModels = getRelevantProducts("model");
     const compatibilityProductsForYears = getRelevantProducts("year");
+    const compatibilityProductsForFuelTypes = getRelevantProducts("fuelType");
     return {
       makers: getUniqueValues(
         compatibilityProductsForMakers.flatMap((product) =>
@@ -223,13 +239,16 @@ const Shop = () => {
           getCompatibilityValues(product, "year"),
         ),
       ).sort((a, b) => Number(b) - Number(a)),
+      fuelTypes: getUniqueValues(
+        compatibilityProductsForFuelTypes.flatMap((product) =>
+          getCompatibilityValues(product, "fuel"),
+        ),
+      ),
       groups: getUniqueValues(
         getRelevantProducts("group").map((product) => product.category),
       ),
       classNames: getUniqueValues(
-        getRelevantProducts("className").map(
-          (product) => product.configuration,
-        ),
+        getRelevantProducts("className").map((product) => product.className),
       ),
       subClasses: getUniqueValues(
         getRelevantProducts("subClass").map((product) => product.subCategory),
@@ -277,6 +296,12 @@ const Shop = () => {
         !filterOptions.years.includes(sanitizedFilters.year)
       ) {
         sanitizedFilters.year = "";
+      }
+      if (
+        sanitizedFilters.fuelType &&
+        !filterOptions.fuelTypes.includes(sanitizedFilters.fuelType)
+      ) {
+        sanitizedFilters.fuelType = "";
       }
       if (
         sanitizedFilters.group &&

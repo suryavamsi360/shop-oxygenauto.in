@@ -2,6 +2,7 @@ interface FilterState {
   maker: string;
   model: string;
   year: string;
+  fuelType: string;
   group: string;
   className: string;
   subClass: string;
@@ -13,6 +14,7 @@ interface ProductFiltersProps {
     makers: string[];
     models: string[];
     years: string[];
+    fuelTypes: string[];
     groups: string[];
     classNames: string[];
     subClasses: string[];
@@ -74,7 +76,7 @@ const ProductFilters = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
         <SelectFilter
           label="Maker"
           value={filters.maker}
@@ -94,6 +96,13 @@ const ProductFilters = ({
           value={filters.year}
           values={options.years}
           onChange={(value) => onFilterChange("year", value)}
+        />
+
+        <SelectFilter
+          label="Fuel Type"
+          value={filters.fuelType}
+          values={options.fuelTypes}
+          onChange={(value) => onFilterChange("fuelType", value)}
         />
 
         <SelectFilter
