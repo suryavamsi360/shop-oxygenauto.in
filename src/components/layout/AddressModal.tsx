@@ -9,6 +9,7 @@ interface AddressModalProps {
 
 const AddressModal = ({ setShowAddressModal }: AddressModalProps) => {
   const addAddress = useAddressStore((state) => state.addAddress);
+  const [formError, setFormError] = useState("");
 
   const [address, setAddress] = useState<Address>({
     id: Date.now(),
@@ -27,6 +28,16 @@ const AddressModal = ({ setShowAddressModal }: AddressModalProps) => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
+
+    if (name === "mobile" || name === "pincode") {
+      const digitsOnly = value.replace(/\D/g, "");
+      setAddress((prev) => ({
+        ...prev,
+        [name]: digitsOnly,
+      }));
+      return;
+    }
+
     setAddress((prev) => ({
       ...prev,
       [name]: value,
@@ -36,7 +47,31 @@ const AddressModal = ({ setShowAddressModal }: AddressModalProps) => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    addAddress(address);
+    const sanitizedAddress: Address = {
+      ...address,
+      name: address.name.trim(),
+      mobile: address.mobile.trim(),
+      address1: address.address1.trim(),
+      address2: address.address2?.trim() || "",
+      city: address.city.trim(),
+      state: address.state.trim(),
+      pincode: address.pincode.trim(),
+      landmark: address.landmark?.trim() || "",
+    };
+
+    if (!/^\d{10}$/.test(sanitizedAddress.mobile)) {
+      setFormError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    if (!/^\d{6}$/.test(sanitizedAddress.pincode)) {
+      setFormError("Please enter a valid 6-digit pincode.");
+      return;
+    }
+
+    setFormError("");
+
+    addAddress(sanitizedAddress);
 
     setShowAddressModal(false);
   };
@@ -136,6 +171,8 @@ const AddressModal = ({ setShowAddressModal }: AddressModalProps) => {
         <button className="rounded-md bg-slate-800 py-2.5 text-sm font-medium text-white transition-all hover:bg-slate-900 active:scale-95">
           SAVE ADDRESS
         </button>
+
+        {formError && <p className="text-sm text-red-600">{formError}</p>}
       </div>
 
       <XIcon

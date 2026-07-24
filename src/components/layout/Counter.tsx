@@ -1,13 +1,13 @@
 import { useCartStore } from "../../store/cartStore";
 
 interface CounterProps {
-  productId: number;
+  itemId: string;
   maxStock?: number;
   className?: string;
 }
 
-const Counter = ({ productId, maxStock, className = "" }: CounterProps) => {
-  const quantity = useCartStore((state) => state.cartItems[productId] ?? 0);
+const Counter = ({ itemId, maxStock, className = "" }: CounterProps) => {
+  const quantity = useCartStore((state) => state.cartItems[itemId] ?? 0);
 
   const addToCart = useCartStore((state) => state.addToCart);
   const removeFromCart = useCartStore((state) => state.removeFromCart);
@@ -20,7 +20,7 @@ const Counter = ({ productId, maxStock, className = "" }: CounterProps) => {
     >
       <button
         type="button"
-        onClick={() => removeFromCart(productId)}
+        onClick={() => removeFromCart(itemId)}
         className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-lg font-semibold text-slate-700 transition hover:bg-slate-200 active:scale-95"
       >
         −
@@ -33,7 +33,7 @@ const Counter = ({ productId, maxStock, className = "" }: CounterProps) => {
       {!isAtStockLimit ? (
         <button
           type="button"
-          onClick={() => addToCart(productId, maxStock)}
+          onClick={() => addToCart(itemId, maxStock)}
           className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-lg font-semibold text-white transition hover:bg-slate-900 active:scale-95"
         >
           +

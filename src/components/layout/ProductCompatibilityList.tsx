@@ -1,13 +1,5 @@
 import { useMemo, useState } from "react";
-
-interface CompatibilityItem {
-  maker: string;
-  line: string;
-  model: string;
-  configuration: string;
-  year: string;
-  fuel: string;
-}
+import type { CompatibilityItem } from "../../types/product";
 
 interface Product {
   compatibilityList?: CompatibilityItem[];

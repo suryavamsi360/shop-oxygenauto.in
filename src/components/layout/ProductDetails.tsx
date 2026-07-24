@@ -4,6 +4,8 @@ import { Tag, Truck, CreditCard, User } from "lucide-react";
 
 import Counter from "./Counter";
 import { useCartStore } from "../../store/cartStore";
+import type { ProductItem } from "../../types/product";
+import { formatMoney, getCurrencySymbol } from "../../utils/currency";
 
 const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
 
@@ -19,43 +21,22 @@ const getImageSrc = (images: string[] = []) => {
   return firstImage;
 };
 
-interface Product {
-  id: string | number;
-  itemId: string;
-  name: string;
-  description: string;
-  partNumber: string;
-  sku: string;
-  stockQuantity: number;
-  condition: string;
-  chassisNumber: string;
-  price: number;
-  mrp: number;
-  images: string[];
-  maker: string;
-  model: string;
-  year: string;
-  category: string;
-  configuration: string;
-  fuel: string;
-}
-
 interface ProductDetailsProps {
-  product: Product;
+  product: ProductItem;
 }
 
 const ProductDetails = ({ product }: ProductDetailsProps) => {
   const navigate = useNavigate();
 
-  const currency = "₹";
+  const currency = getCurrencySymbol();
 
   const [mainImage, setMainImage] = useState(getImageSrc(product.images));
 
   const cart = useCartStore((state) => state.cartItems);
   const addToCart = useCartStore((state) => state.addToCart);
 
-  const productId = Number(product.id);
-  const quantity = cart[productId] ?? 0;
+  const itemId = product.itemId;
+  const quantity = cart[itemId] ?? 0;
   const isOutOfStock = product.stockQuantity <= 0;
 
   const addToCartHandler = () => {
@@ -63,7 +44,7 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
       return;
     }
 
-    addToCart(productId, product.stockQuantity);
+    addToCart(itemId, product.stockQuantity);
   };
 
   return (
@@ -105,45 +86,43 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
         <div className="my-6 flex items-start gap-3 text-2xl font-semibold text-slate-800">
           <p>
             {currency}
-            {product.price}
+            {formatMoney(product.price)}
           </p>
 
           <p className="text-xl text-slate-500 line-through">
             {currency}
-            {product.mrp}
+            {formatMoney(product.mrp)}
           </p>
         </div>
 
         {/* Discount */}
-        <div className="flex items-center gap-2 text-slate-500">
-          <Tag size={16} />
+        {product.discountPercent && product.discountPercent > 0 && (
+          <div className="flex items-center gap-2 text-slate-500">
+            <Tag size={16} />
 
-          <p>
-            Save{" "}
-            {(((product.mrp - product.price) / product.mrp) * 100).toFixed(0)}%
-            right now
-          </p>
-        </div>
+            <p>Save {Math.round(product.discountPercent)}% right now</p>
+          </div>
+        )}
 
         {/* Cart */}
         <div className="mt-10 flex items-end gap-5">
-          {cart[productId] && (
+          {cart[itemId] && (
             <div className="flex flex-col gap-3">
               <p className="text-lg font-semibold text-slate-800">Quantity</p>
 
-              <Counter productId={productId} maxStock={product.stockQuantity} />
+              <Counter itemId={itemId} maxStock={product.stockQuantity} />
             </div>
           )}
 
           <button
             type="button"
             onClick={() =>
-              !cart[productId] ? addToCartHandler() : navigate("/cart")
+              !cart[itemId] ? addToCartHandler() : navigate("/cart")
             }
-            disabled={!cart[productId] && isOutOfStock}
+            disabled={!cart[itemId] && isOutOfStock}
             className="rounded-full bg-gradient-to-r from-slate-800 to-slate-700 px-8 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-900 hover:shadow-lg active:scale-95"
           >
-            {!cart[productId]
+            {!cart[itemId]
               ? isOutOfStock
                 ? "Out of Stock"
                 : "Add to Cart"
@@ -167,8 +146,16 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
               {product.model}
             </p>
             <p>
+              <span className="font-medium text-slate-700">Configuration:</span>{" "}
+              {product.configuration}
+            </p>
+            <p>
               <span className="font-medium text-slate-700">Year:</span>{" "}
               {product.year}
+            </p>
+            <p>
+              <span className="font-medium text-slate-700">Fuel:</span>{" "}
+              {product.fuel || "-"}
             </p>
           </section>
 
@@ -182,11 +169,11 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
             </p>
             <p>
               <span className="font-medium text-slate-700">Class:</span>{" "}
-              {product.configuration}
+              {product.className}
             </p>
             <p>
               <span className="font-medium text-slate-700">Sub Class:</span>{" "}
-              {product.fuel}
+              {product.subCategory || "-"}
             </p>
           </section>
 

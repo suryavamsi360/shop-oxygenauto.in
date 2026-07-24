@@ -1,9 +1,9 @@
-interface Product {
-  description: string;
-}
+import type { ProductItem } from "../../types/product";
+
+type ProductDescriptionView = Pick<ProductItem, "description">;
 
 interface ProductDescriptionProps {
-  product: Product;
+  product: ProductDescriptionView;
 }
 
 const ProductDescription = ({ product }: ProductDescriptionProps) => {

@@ -1,6 +1,7 @@
 interface FilterState {
   maker: string;
   model: string;
+  configuration: string;
   year: string;
   fuelType: string;
   group: string;
@@ -13,6 +14,7 @@ interface ProductFiltersProps {
   options: {
     makers: string[];
     models: string[];
+    configurations: string[];
     years: string[];
     fuelTypes: string[];
     groups: string[];
@@ -96,6 +98,13 @@ const ProductFilters = ({
           value={filters.year}
           values={options.years}
           onChange={(value) => onFilterChange("year", value)}
+        />
+
+        <SelectFilter
+          label="Configuration"
+          value={filters.configuration}
+          values={options.configurations}
+          onChange={(value) => onFilterChange("configuration", value)}
         />
 
         <SelectFilter

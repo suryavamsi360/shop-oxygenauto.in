@@ -1,33 +1,74 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import ProductCompatibilityList from "../../src/components/layout/ProductCompatibilityList";
-import ProductDescription from "../../src/components/layout/ProductDescription";
-import ProductDetails from "../../src/components/layout/ProductDetails";
-import ProductTestingInfo from "../../src/components/layout/ProductTestingInfo";
+import Loading from "../components/layout/Loading";
+import ProductCompatibilityList from "../components/layout/ProductCompatibilityList";
+import ProductDescription from "../components/layout/ProductDescription";
+import ProductDetails from "../components/layout/ProductDetails";
+import ProductTestingInfo from "../components/layout/ProductTestingInfo";
 
-import { useProductStore } from "../../src/store/productStore";
+import { useProductStore } from "../store/productStore";
+import type { ProductItem } from "../types/product";
 
 const Product = () => {
-  const { id } = useParams();
+  const { itemId } = useParams();
 
   const products = useProductStore((state) => state.products);
+  const loadProductDetail = useProductStore((state) => state.loadProductDetail);
+  const isDetailsLoading = useProductStore((state) => state.isDetailsLoading);
 
-  const [product, setProduct] = useState<any>(null);
-  console.log("🚀 ~ file: ProductDetails.tsx:13 ~ Product ~ product:", product);
+  const [product, setProduct] = useState<ProductItem | null>(null);
+  const [detailsError, setDetailsError] = useState("");
 
   useEffect(() => {
-    if (!products.length || !id) return;
+    if (!itemId) return;
 
-    const selectedProduct = products.find((item: any) => item.id === id);
+    let isMounted = true;
 
-    setProduct(selectedProduct ?? null);
+    setDetailsError("");
 
+    void loadProductDetail(itemId)
+      .then((response) => {
+        if (!isMounted) return;
+        setProduct(response);
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+        setDetailsError(
+          error instanceof Error
+            ? error.message
+            : "Something went wrong while loading product details.",
+        );
+        setProduct(null);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [itemId, loadProductDetail]);
+
+  useEffect(() => {
     window.scrollTo({
       top: 0,
       behavior: "smooth",
     });
-  }, [id, products]);
+  }, [itemId]);
+
+  const listProduct = itemId
+    ? products.find((item) => item.itemId === itemId)
+    : undefined;
+
+  if (isDetailsLoading && !product) {
+    return <Loading />;
+  }
+
+  if (detailsError) {
+    return (
+      <div className="mx-6 py-12 text-center text-slate-500">
+        <p>{detailsError}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-6">
@@ -41,10 +82,12 @@ const Product = () => {
           <Link to="/products" className="transition hover:text-slate-900">
             Products
           </Link>
-          {product?.category && (
+          {(product?.category || listProduct?.category) && (
             <>
               <span>/</span>
-              <span className="text-slate-700">{product.category}</span>
+              <span className="text-slate-700">
+                {product?.category || listProduct?.category}
+              </span>
             </>
           )}
         </div>

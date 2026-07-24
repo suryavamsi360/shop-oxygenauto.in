@@ -2,11 +2,11 @@ import { create } from "zustand";
 
 interface CartState {
   total: number;
-  cartItems: Record<number, number>;
+  cartItems: Record<string, number>;
 
-  addToCart: (productId: number, maxStock?: number) => void;
-  removeFromCart: (productId: number) => void;
-  deleteItem: (productId: number) => void;
+  addToCart: (itemId: string, maxStock?: number) => void;
+  removeFromCart: (itemId: string) => void;
+  deleteItem: (itemId: string) => void;
   clearCart: () => void;
 }
 
@@ -29,16 +29,16 @@ export const useCartStore = create<CartState>((set) => ({
   total: getStoredCart().total,
   cartItems: getStoredCart().cartItems,
 
-  addToCart: (productId, maxStock) =>
+  addToCart: (itemId, maxStock) =>
     set((state) => {
       const cartItems = { ...state.cartItems };
-      const currentQuantity = cartItems[productId] || 0;
+      const currentQuantity = cartItems[itemId] || 0;
 
       if (typeof maxStock === "number" && currentQuantity >= maxStock) {
         return state;
       }
 
-      cartItems[productId] = currentQuantity + 1;
+      cartItems[itemId] = currentQuantity + 1;
       const nextState = {
         cartItems,
         total: state.total + 1,
@@ -51,16 +51,16 @@ export const useCartStore = create<CartState>((set) => ({
       return nextState;
     }),
 
-  removeFromCart: (productId) =>
+  removeFromCart: (itemId) =>
     set((state) => {
-      if (!state.cartItems[productId]) return state;
+      if (!state.cartItems[itemId]) return state;
 
       const cartItems = { ...state.cartItems };
 
-      cartItems[productId]--;
+      cartItems[itemId]--;
 
-      if (cartItems[productId] === 0) {
-        delete cartItems[productId];
+      if (cartItems[itemId] === 0) {
+        delete cartItems[itemId];
       }
 
       const nextState = {
@@ -75,14 +75,14 @@ export const useCartStore = create<CartState>((set) => ({
       return nextState;
     }),
 
-  deleteItem: (productId) =>
+  deleteItem: (itemId) =>
     set((state) => {
-      if (!state.cartItems[productId]) return state;
+      if (!state.cartItems[itemId]) return state;
 
       const cartItems = { ...state.cartItems };
-      const quantity = cartItems[productId];
+      const quantity = cartItems[itemId];
 
-      delete cartItems[productId];
+      delete cartItems[itemId];
 
       const nextState = {
         cartItems,
@@ -97,8 +97,16 @@ export const useCartStore = create<CartState>((set) => ({
     }),
 
   clearCart: () =>
-    set({
-      total: 0,
-      cartItems: {},
+    set(() => {
+      const nextState = {
+        total: 0,
+        cartItems: {},
+      };
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+      }
+
+      return nextState;
     }),
 }));

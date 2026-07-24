@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 
 import { useCartStore } from "../../store/cartStore";
+import type { ProductListItem } from "../../types/product";
+import { formatMoney, getCurrencySymbol } from "../../utils/currency";
 import Counter from "./Counter";
 
 const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
@@ -17,33 +19,17 @@ const getImageSrc = (images: string[] = []) => {
   return firstImage;
 };
 
-interface Product {
-  id: string | number;
-  name: string;
-  mrp?: number;
-  price: number;
-  images: string[];
-  maker: string;
-  model: string;
-  year: string;
-  configuration: string;
-  stockQuantity: number;
-}
-
 interface ProductCardProps {
-  product: Product;
+  product: ProductListItem;
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
-  const currency = "₹";
+  const currency = getCurrencySymbol();
   const addToCart = useCartStore((state) => state.addToCart);
   const quantity = useCartStore(
-    (state) => state.cartItems[Number(product.id)] ?? 0,
+    (state) => state.cartItems[product.itemId] ?? 0,
   );
-  const discountPercent =
-    product.mrp && product.mrp > product.price
-      ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
-      : 0;
+  const discountPercent = Math.round(product.discountPercent ?? 0);
 
   const handleAddToCart = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -53,14 +39,14 @@ const ProductCard = ({ product }: ProductCardProps) => {
       return;
     }
 
-    addToCart(Number(product.id), product.stockQuantity);
+    addToCart(product.itemId, product.stockQuantity);
   };
 
   const isOutOfStock = product.stockQuantity <= 0;
 
   return (
     <div className="group mx-auto flex h-full w-full max-w-[14rem] min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <Link to={`/products/${product.id}`} className="block">
+      <Link to={`/products/${product.itemId}`} className="block">
         <div>
           <div className="relative flex h-36 items-center justify-center overflow-hidden rounded-lg bg-[#F5F5F5] sm:h-60 sm:w-56">
             {discountPercent > 0 && (
@@ -89,14 +75,14 @@ const ProductCard = ({ product }: ProductCardProps) => {
                 </p>
                 <p className="text-base font-bold whitespace-nowrap text-slate-900">
                   {currency}
-                  {product.price}
+                  {formatMoney(product.price)}
                 </p>
               </div>
 
               {product.mrp && product.mrp > product.price && (
                 <p className="text-[11px] font-medium whitespace-nowrap text-slate-400 line-through">
                   {currency}
-                  {product.mrp}
+                  {formatMoney(product.mrp)}
                 </p>
               )}
             </div>
@@ -107,7 +93,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       {quantity > 0 ? (
         <div className="mt-2 flex justify-center p-1">
           <Counter
-            productId={Number(product.id)}
+            itemId={product.itemId}
             maxStock={product.stockQuantity}
             className="w-1/2 justify-between"
           />

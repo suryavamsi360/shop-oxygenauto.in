@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, MoveLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, MoveLeft, RefreshCw } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import Loading from "../components/layout/Loading";
@@ -10,6 +10,7 @@ import { useProductStore } from "../store/productStore";
 interface FilterState {
   maker: string;
   model: string;
+  configuration: string;
   year: string;
   fuelType: string;
   group: string;
@@ -20,6 +21,7 @@ interface FilterState {
 const INITIAL_FILTERS: FilterState = {
   maker: "",
   model: "",
+  configuration: "",
   year: "",
   fuelType: "",
   group: "",
@@ -30,6 +32,7 @@ const INITIAL_FILTERS: FilterState = {
 const FILTER_KEYS: Array<keyof FilterState> = [
   "maker",
   "model",
+  "configuration",
   "year",
   "fuelType",
   "group",
@@ -42,53 +45,13 @@ const ITEMS_PER_PAGE = 30;
 const normalizeFilters = (filters: FilterState): FilterState => ({
   maker: filters.maker.trim(),
   model: filters.model.trim(),
+  configuration: filters.configuration.trim(),
   year: filters.year.trim(),
   fuelType: filters.fuelType.trim(),
   group: filters.group.trim(),
   className: filters.className.trim(),
   subClass: filters.subClass.trim(),
 });
-
-const getUniqueValues = (values: string[]) => {
-  return [...new Set(values.filter((value) => value.trim().length > 0))].sort(
-    (a, b) => a.localeCompare(b),
-  );
-};
-
-const matchesFilterValue = (productValue: string, filterValue: string) =>
-  filterValue
-    ? productValue.toLowerCase().includes(filterValue.toLowerCase())
-    : true;
-
-const matchesCompatibilityValue = (values: string[], filterValue: string) => {
-  if (!filterValue) {
-    return true;
-  }
-
-  const normalizedFilterValue = filterValue.toLowerCase();
-
-  return values.some((value) =>
-    value.toLowerCase().includes(normalizedFilterValue),
-  );
-};
-
-interface CompatibilityFilterProduct {
-  compatibilityList: Array<{
-    maker: string;
-    model: string;
-    configuration: string;
-    year: string;
-    fuel: string;
-  }>;
-}
-
-const getCompatibilityValues = (
-  product: CompatibilityFilterProduct,
-  key: "maker" | "model" | "configuration" | "year" | "fuel",
-) => {
-  const values = product.compatibilityList.map((entry) => entry[key]);
-  return getUniqueValues(values);
-};
 
 const Shop = () => {
   const [searchParams] = useSearchParams();
@@ -100,165 +63,46 @@ const Shop = () => {
   const search = searchParams.get("search");
 
   const products = useProductStore((state) => state.products);
+  const total = useProductStore((state) => state.total);
+  const limit = useProductStore((state) => state.limit);
+  const facets = useProductStore((state) => state.facets);
   const isLoading = useProductStore((state) => state.isLoading);
   const error = useProductStore((state) => state.error);
   const loadProducts = useProductStore((state) => state.loadProducts);
 
-  const filteredProducts = useMemo(() => {
-    const normalizedSearch = (search ?? "").trim().toLowerCase();
-    const normalizedFilters = normalizeFilters(filters);
-
-    return products.filter((product) => {
-      const matchesSearch = normalizedSearch
-        ? product.name.toLowerCase().includes(normalizedSearch)
-        : true;
-
-      const matchesMaker = matchesCompatibilityValue(
-        getCompatibilityValues(product, "maker"),
-        normalizedFilters.maker,
-      );
-      const matchesModel = matchesCompatibilityValue(
-        getCompatibilityValues(product, "model"),
-        normalizedFilters.model,
-      );
-      const matchesYear = matchesCompatibilityValue(
-        getCompatibilityValues(product, "year"),
-        normalizedFilters.year,
-      );
-      const matchesFuelType = matchesCompatibilityValue(
-        getCompatibilityValues(product, "fuel"),
-        normalizedFilters.fuelType,
-      );
-      const matchesGroup = normalizedFilters.group
-        ? product.category
-            .toLowerCase()
-            .includes(normalizedFilters.group.toLowerCase())
-        : true;
-      const matchesClass = normalizedFilters.className
-        ? product.className
-            .toLowerCase()
-            .includes(normalizedFilters.className.toLowerCase())
-        : true;
-      const matchesSubClass = normalizedFilters.subClass
-        ? product.subCategory
-            .toLowerCase()
-            .includes(normalizedFilters.subClass.toLowerCase())
-        : true;
-
-      return (
-        matchesSearch &&
-        matchesMaker &&
-        matchesModel &&
-        matchesYear &&
-        matchesFuelType &&
-        matchesGroup &&
-        matchesClass &&
-        matchesSubClass
-      );
-    });
-  }, [products, search, filters]);
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredProducts.length / ITEMS_PER_PAGE),
-  );
-
-  const paginatedProducts = useMemo(
-    () =>
-      filteredProducts.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE,
-      ),
-    [filteredProducts, currentPage],
-  );
+  const totalPages = Math.max(1, Math.ceil(total / Math.max(limit, 1)));
 
   const filterOptions = useMemo(() => {
-    const getRelevantProducts = (excludeKey: keyof FilterState) => {
-      return products.filter((product) => {
-        return FILTER_KEYS.every((key) => {
-          if (key === excludeKey) {
-            return true;
-          }
-
-          if (key === "maker") {
-            return matchesCompatibilityValue(
-              getCompatibilityValues(product, "maker"),
-              filters.maker,
-            );
-          }
-          if (key === "model") {
-            return matchesCompatibilityValue(
-              getCompatibilityValues(product, "model"),
-              filters.model,
-            );
-          }
-          if (key === "year") {
-            return matchesCompatibilityValue(
-              getCompatibilityValues(product, "year"),
-              filters.year,
-            );
-          }
-          if (key === "fuelType") {
-            return matchesCompatibilityValue(
-              getCompatibilityValues(product, "fuel"),
-              filters.fuelType,
-            );
-          }
-          if (key === "group") {
-            return matchesFilterValue(product.category, filters.group);
-          }
-          if (key === "className") {
-            return matchesFilterValue(product.className, filters.className);
-          }
-          if (key === "subClass") {
-            return matchesFilterValue(product.subCategory, filters.subClass);
-          }
-
-          return matchesFilterValue(product[key], filters[key]);
-        });
-      });
-    };
-
-    const compatibilityProductsForMakers = getRelevantProducts("maker");
-    const compatibilityProductsForModels = getRelevantProducts("model");
-    const compatibilityProductsForYears = getRelevantProducts("year");
-    const compatibilityProductsForFuelTypes = getRelevantProducts("fuelType");
     return {
-      makers: getUniqueValues(
-        compatibilityProductsForMakers.flatMap((product) =>
-          getCompatibilityValues(product, "maker"),
-        ),
-      ),
-      models: getUniqueValues(
-        compatibilityProductsForModels.flatMap((product) =>
-          getCompatibilityValues(product, "model"),
-        ),
-      ),
-      years: getUniqueValues(
-        compatibilityProductsForYears.flatMap((product) =>
-          getCompatibilityValues(product, "year"),
-        ),
-      ).sort((a, b) => Number(b) - Number(a)),
-      fuelTypes: getUniqueValues(
-        compatibilityProductsForFuelTypes.flatMap((product) =>
-          getCompatibilityValues(product, "fuel"),
-        ),
-      ),
-      groups: getUniqueValues(
-        getRelevantProducts("group").map((product) => product.category),
-      ),
-      classNames: getUniqueValues(
-        getRelevantProducts("className").map((product) => product.className),
-      ),
-      subClasses: getUniqueValues(
-        getRelevantProducts("subClass").map((product) => product.subCategory),
-      ),
+      makers: facets.maker.map((item) => item.value),
+      models: facets.model.map((item) => item.value),
+      configurations: facets.configuration.map((item) => item.value),
+      years: facets.year.map((item) => item.value),
+      fuelTypes: facets.fuelType.map((item) => item.value),
+      groups: facets.group.map((item) => item.value),
+      classNames: facets.className.map((item) => item.value),
+      subClasses: facets.subClass.map((item) => item.value),
     };
-  }, [products, filters]);
+  }, [facets]);
+
+  const requestQuery = useMemo(() => {
+    const normalizedFilters = normalizeFilters(filters);
+
+    return {
+      page: currentPage,
+      limit: ITEMS_PER_PAGE,
+      search: (search ?? "").trim(),
+      ...normalizedFilters,
+    };
+  }, [currentPage, filters, search]);
+
+  useEffect(() => {
+    void loadProducts(requestQuery);
+  }, [loadProducts, requestQuery]);
 
   useEffect(() => {
     setCurrentPage(1);
-    setFilters(INITIAL_FILTERS);
+    setPageInput("1");
   }, [search]);
 
   useEffect(() => {
@@ -290,6 +134,12 @@ const Shop = () => {
         !filterOptions.models.includes(sanitizedFilters.model)
       ) {
         sanitizedFilters.model = "";
+      }
+      if (
+        sanitizedFilters.configuration &&
+        !filterOptions.configurations.includes(sanitizedFilters.configuration)
+      ) {
+        sanitizedFilters.configuration = "";
       }
       if (
         sanitizedFilters.year &&
@@ -357,20 +207,32 @@ const Shop = () => {
     handlePageChange(Math.trunc(requestedPage));
   };
 
-  const handleRetrySearch = () => {
-    void loadProducts();
+  const handleRefreshSearch = () => {
+    void loadProducts(requestQuery);
   };
 
   return (
     <div className="mx-6 min-h-[70vh]">
       <div className="mx-auto max-w-7xl">
-        <h1
-          onClick={() => navigate("/products")}
-          className="my-6 flex cursor-pointer items-center gap-2 text-2xl text-slate-500"
-        >
-          {search && <MoveLeft size={20} />}
-          All <span className="font-medium text-slate-700">Products</span>
-        </h1>
+        <div className="my-6 flex flex-wrap items-center justify-between gap-3">
+          <h1
+            onClick={() => navigate("/products")}
+            className="flex cursor-pointer items-center gap-2 text-2xl text-slate-500"
+          >
+            {search && <MoveLeft size={20} />}
+            All <span className="font-medium text-slate-700">Products</span>
+          </h1>
+
+          <button
+            type="button"
+            onClick={handleRefreshSearch}
+            disabled={isLoading}
+            className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition enabled:hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw size={16} />
+            Refresh and search again
+          </button>
+        </div>
 
         <ProductFilters
           filters={filters}
@@ -386,16 +248,16 @@ const Shop = () => {
             <p>Something went wrong while loading products.</p>
             <button
               type="button"
-              onClick={handleRetrySearch}
+              onClick={handleRefreshSearch}
               className="mt-4 rounded-md bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-900"
             >
-              Retry Search
+              Refresh and search again
             </button>
           </div>
-        ) : filteredProducts.length > 0 ? (
+        ) : products.length > 0 ? (
           <>
             <div className="mx-auto grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:gap-8">
-              {paginatedProducts.map((product) => (
+              {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>

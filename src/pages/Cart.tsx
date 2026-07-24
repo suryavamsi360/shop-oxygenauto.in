@@ -8,6 +8,8 @@ import PageTitle from "../components/layout/PageTitle";
 
 import { useCartStore } from "../store/cartStore";
 import { useProductStore } from "../store/productStore";
+import type { ProductListItem } from "../types/product";
+import { formatMoney, getCurrencySymbol } from "../utils/currency";
 
 const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
 
@@ -24,7 +26,7 @@ const getImageSrc = (images: string[] = []) => {
 };
 
 export default function Cart() {
-  const currency = "Rs.";
+  const currency = getCurrencySymbol();
   const navigate = useNavigate();
 
   const cartItems = useCartStore((state) => state.cartItems);
@@ -32,15 +34,15 @@ export default function Cart() {
 
   const products = useProductStore((state) => state.products);
 
-  const [cartArray, setCartArray] = useState<any[]>([]);
+  const [cartArray, setCartArray] = useState<Array<ProductListItem & { quantity: number }>>([]);
   const [totalPrice, setTotalPrice] = useState(0);
 
   useEffect(() => {
     let total = 0;
-    const items: any[] = [];
+    const items: Array<ProductListItem & { quantity: number }> = [];
 
-    Object.entries(cartItems).forEach(([productId, quantity]) => {
-      const product = products.find((p) => p.id === productId);
+    Object.entries(cartItems).forEach(([itemId, quantity]) => {
+      const product = products.find((p) => p.itemId === itemId);
 
       if (product) {
         items.push({
@@ -115,26 +117,23 @@ export default function Cart() {
                       <p className="text-xs text-slate-500">{item.category}</p>
                       <p>
                         {currency}
-                        {item.price}
+                        {formatMoney(item.price)}
                       </p>
                     </div>
                   </td>
 
                   <td className="text-center">
-                    <Counter
-                      productId={item.id}
-                      maxStock={item.stockQuantity}
-                    />
+                    <Counter itemId={item.itemId} maxStock={item.stockQuantity} />
                   </td>
 
                   <td className="text-center">
                     {currency}
-                    {(item.price * item.quantity).toLocaleString()}
+                    {formatMoney(item.price * item.quantity)}
                   </td>
 
                   <td className="text-center max-md:hidden">
                     <button
-                      onClick={() => deleteItem(item.id)}
+                      onClick={() => deleteItem(item.itemId)}
                       className="rounded-full p-2.5 text-red-500 transition hover:bg-red-50 active:scale-95"
                     >
                       <Trash2Icon size={18} />

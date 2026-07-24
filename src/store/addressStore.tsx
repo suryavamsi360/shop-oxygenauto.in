@@ -21,6 +21,7 @@ interface AddressState {
   updateAddress: (address: Address) => void;
   removeAddress: (id: number) => void;
   selectAddress: (id: number) => void;
+  clearSelectedAddress: () => void;
 }
 
 const STORAGE_KEY = "oxygenauto-addresses";
@@ -95,6 +96,16 @@ export const useAddressStore = create<AddressState>((set) => ({
       const nextState = {
         addresses: state.addresses,
         selectedAddressId: id,
+      };
+      persistAddressState(nextState);
+      return nextState;
+    }),
+
+  clearSelectedAddress: () =>
+    set((state) => {
+      const nextState = {
+        addresses: state.addresses,
+        selectedAddressId: null,
       };
       persistAddressState(nextState);
       return nextState;

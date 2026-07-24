@@ -5,6 +5,9 @@ import { useNavigate } from "react-router-dom";
 import AddressModal from "./AddressModal";
 import { useAddressStore, type Address } from "../../store/addressStore";
 import { useCartStore } from "../../store/cartStore";
+import { useProductStore } from "../../store/productStore";
+import { sendOrderWebhook } from "../../services/orderWebhook";
+import { formatMoney, getCurrencySymbol } from "../../utils/currency";
 
 interface OrderSummaryProps {
   totalPrice: number;
@@ -13,23 +16,51 @@ interface OrderSummaryProps {
 interface Coupon {
   code: string;
   description: string;
-  discount: number;
+  kind: "percent" | "flat";
+  value: number;
+  minOrderAmount: number;
+  maxDiscount?: number;
 }
 
+const COUPONS: Coupon[] = [
+  {
+    code: "OXYGEN10",
+    description: "10% off on orders above Rs. 1,500",
+    kind: "percent",
+    value: 10,
+    minOrderAmount: 1500,
+    maxDiscount: 750,
+  },
+  {
+    code: "PARTNER150",
+    description: "Flat Rs. 150 off on orders above Rs. 2,000",
+    kind: "flat",
+    value: 150,
+    minOrderAmount: 2000,
+  },
+];
+
 const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
-  const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "Rs.";
+  const currency = getCurrencySymbol();
 
   const navigate = useNavigate();
 
   const addresses = useAddressStore((state) => state.addresses);
   const selectedAddressId = useAddressStore((state) => state.selectedAddressId);
   const selectAddress = useAddressStore((state) => state.selectAddress);
+  const clearSelectedAddress = useAddressStore(
+    (state) => state.clearSelectedAddress,
+  );
   const clearCart = useCartStore((state) => state.clearCart);
   const cartItems = useCartStore((state) => state.cartItems);
+  const products = useProductStore((state) => state.products);
 
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [coupon] = useState<Coupon | null>(null);
+  const [couponCodeInput, setCouponCodeInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [formError, setFormError] = useState("");
 
   const selectedAddress = useMemo<Address | null>(() => {
     if (!selectedAddressId) return null;
@@ -38,8 +69,118 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
     );
   }, [addresses, selectedAddressId]);
 
+  const orderItems = useMemo(() => {
+    return Object.entries(cartItems)
+      .map(([itemId, quantity]) => {
+        const product = products.find((item) => item.itemId === itemId);
+
+        if (!product) {
+          return null;
+        }
+
+        return {
+          productId: product.itemId,
+          itemId: product.itemId,
+          name: product.name,
+          quantity,
+          price: product.price,
+          mrp: product.mrp,
+          discountPercent: product.discountPercent,
+          lineTotal: Number((product.price * quantity).toFixed(2)),
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+  }, [cartItems, products]);
+
+  const couponDiscount = useMemo(() => {
+    if (!appliedCoupon) {
+      return 0;
+    }
+
+    if (totalPrice < appliedCoupon.minOrderAmount) {
+      return 0;
+    }
+
+    if (appliedCoupon.kind === "percent") {
+      const rawDiscount = (appliedCoupon.value / 100) * totalPrice;
+      if (typeof appliedCoupon.maxDiscount === "number") {
+        return Math.min(rawDiscount, appliedCoupon.maxDiscount);
+      }
+      return rawDiscount;
+    }
+
+    return Math.min(appliedCoupon.value, totalPrice);
+  }, [appliedCoupon, totalPrice]);
+
+  const payableTotal = useMemo(() => {
+    return Number((totalPrice - couponDiscount).toFixed(2));
+  }, [totalPrice, couponDiscount]);
+
+  const handleCouponCode = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const normalizedCode = couponCodeInput.trim().toUpperCase();
+
+    if (!normalizedCode) {
+      setCouponError("Enter a coupon code.");
+      return;
+    }
+
+    const matchingCoupon = COUPONS.find(
+      (coupon) => coupon.code === normalizedCode,
+    );
+
+    if (!matchingCoupon) {
+      setCouponError("Invalid coupon code.");
+      return;
+    }
+
+    if (totalPrice < matchingCoupon.minOrderAmount) {
+      setCouponError(
+        `This coupon requires a minimum order of ${currency}${formatMoney(matchingCoupon.minOrderAmount)}.`,
+      );
+      return;
+    }
+
+    setAppliedCoupon(matchingCoupon);
+    setCouponError("");
+    setCouponCodeInput(normalizedCode);
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError("");
+    setCouponCodeInput("");
+  };
+
   const handlePlaceOrder = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+
+    if (!selectedAddress) {
+      setFormError(
+        "Please select or add an address before placing your order.",
+      );
+      return;
+    }
+
+    if (orderItems.length === 0) {
+      setFormError("Your cart is empty. Add items before placing your order.");
+      return;
+    }
+
+    setFormError("");
+
+    const sanitizedAddress = {
+      ...selectedAddress,
+      name: selectedAddress.name.trim(),
+      mobile: selectedAddress.mobile.trim(),
+      address1: selectedAddress.address1.trim(),
+      address2: selectedAddress.address2?.trim() || "",
+      city: selectedAddress.city.trim(),
+      state: selectedAddress.state.trim(),
+      pincode: selectedAddress.pincode.trim(),
+      landmark: selectedAddress.landmark?.trim() || "",
+    };
 
     const itemCount = Object.values(cartItems).reduce(
       (sum, quantity) => sum + Number(quantity),
@@ -47,17 +188,24 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
     );
 
     const orderSummary = {
-      totalAmount: coupon
-        ? Number((totalPrice - (coupon.discount / 100) * totalPrice).toFixed(2))
-        : totalPrice,
+      totalAmount: payableTotal,
       paymentMethod,
       itemCount,
       distinctItems: Object.keys(cartItems).length,
       orderedAt: new Date().toISOString(),
-      address: selectedAddress
-        ? `${selectedAddress.name}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.pincode}`
-        : "Address not selected",
+      address: `${sanitizedAddress.name}, ${sanitizedAddress.city}, ${sanitizedAddress.state}, ${sanitizedAddress.pincode}`,
     };
+
+    const webhookPayload = {
+      orderSummary,
+      customerAddress: sanitizedAddress,
+      items: orderItems,
+      webhookSource: "oxygenauto-web-store",
+    };
+
+    void sendOrderWebhook(webhookPayload).catch((error) => {
+      console.error("Failed to send order webhook", error);
+    });
 
     clearCart();
     navigate("/order-success", {
@@ -114,7 +262,7 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
             <SquarePenIcon
               size={18}
               className="cursor-pointer"
-              onClick={() => selectAddress(0)}
+              onClick={clearSelectedAddress}
             />
           </div>
         ) : (
@@ -123,6 +271,11 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
               <select
                 className="my-3 w-full rounded border border-slate-400 p-2 outline-none"
                 onChange={(e) => {
+                  if (!e.target.value) {
+                    clearSelectedAddress();
+                    return;
+                  }
+
                   const id = Number(e.target.value);
                   if (!Number.isNaN(id)) {
                     selectAddress(id);
@@ -151,32 +304,32 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
         )}
       </div>
 
-      {/* <div className="border-b border-slate-200 pb-4">
+      <div className="border-b border-slate-200 pb-4">
         <div className="flex justify-between">
           <div className="flex flex-col gap-1 text-slate-400">
             <p>Subtotal:</p>
             <p>Shipping:</p>
-            {coupon && <p>Coupon:</p>}
+            {appliedCoupon && <p>Coupon:</p>}
           </div>
 
           <div className="flex flex-col gap-1 text-right font-medium">
             <p>
               {currency}
-              {totalPrice.toLocaleString()}
+              {formatMoney(totalPrice, true)}
             </p>
 
             <p>Free</p>
 
-            {coupon && (
+            {appliedCoupon && (
               <p>
                 -{currency}
-                {((coupon.discount / 100) * totalPrice).toFixed(2)}
+                {formatMoney(couponDiscount, true)}
               </p>
             )}
           </div>
         </div>
 
-        {!coupon ? (
+        {!appliedCoupon ? (
           <form
             onSubmit={handleCouponCode}
             className="mt-3 flex justify-center gap-3"
@@ -198,29 +351,33 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
             <p>
               Code:
               <span className="ml-1 font-semibold">
-                {coupon.code.toUpperCase()}
+                {appliedCoupon.code.toUpperCase()}
               </span>
             </p>
 
-            <p>{coupon.description}</p>
+            <p>{appliedCoupon.description}</p>
 
-            <XIcon
-              size={18}
-              className="cursor-pointer transition hover:text-red-700"
-              onClick={() => setCoupon(null)}
-            />
+            <button
+              type="button"
+              onClick={handleRemoveCoupon}
+              className="cursor-pointer rounded px-2 py-1 text-red-700 transition hover:bg-red-100"
+            >
+              Remove
+            </button>
           </div>
         )}
-      </div> */}
+
+        {couponError && (
+          <p className="mt-2 text-xs text-red-600">{couponError}</p>
+        )}
+      </div>
 
       <div className="flex justify-between py-4">
         <p>Total:</p>
 
         <p className="text-right font-medium">
           {currency}
-          {coupon
-            ? (totalPrice - (coupon.discount / 100) * totalPrice).toFixed(2)
-            : totalPrice.toLocaleString()}
+          {formatMoney(payableTotal, true)}
         </p>
       </div>
 
@@ -230,6 +387,8 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
       >
         Place Order
       </button>
+
+      {formError && <p className="mt-3 text-sm text-red-600">{formError}</p>}
 
       {showAddressModal && (
         <AddressModal setShowAddressModal={setShowAddressModal} />

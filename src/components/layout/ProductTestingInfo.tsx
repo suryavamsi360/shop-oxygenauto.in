@@ -1,18 +1,23 @@
-interface Product {
-  itemId: string;
-  sourceReferenceId: string;
-  sku: string;
-}
+import type { ProductItem } from "../../types/product";
+
+type ProductTestingView = Pick<
+  ProductItem,
+  "itemId" | "createdAt" | "updatedAt" | "compatibilityList"
+>;
 
 interface ProductTestingInfoProps {
-  product: Product;
+  product: ProductTestingView;
 }
 
 const ProductTestingInfo = ({ product }: ProductTestingInfoProps) => {
   const rows = [
     { label: "Item ID", value: product.itemId },
-    { label: "Source Reference ID", value: product.sourceReferenceId },
-    { label: "SKU", value: product.sku },
+    { label: "Created At", value: product.createdAt },
+    { label: "Updated At", value: product.updatedAt },
+    {
+      label: "Compatibility Rows",
+      value: String(product.compatibilityList?.length ?? 0),
+    },
   ];
 
   return (

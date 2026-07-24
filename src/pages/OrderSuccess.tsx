@@ -1,5 +1,6 @@
 import { CheckCircle2 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { formatMoney, getCurrencySymbol } from "../utils/currency";
 
 interface OrderSummaryState {
   totalAmount: number;
@@ -15,7 +16,7 @@ interface LocationState {
 }
 
 const OrderSuccess = () => {
-  const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "Rs.";
+  const currency = getCurrencySymbol();
   const location = useLocation();
   const state = location.state as LocationState | null;
   const orderSummary = state?.orderSummary;
@@ -43,7 +44,7 @@ const OrderSuccess = () => {
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <p>
                 <span className="font-medium">Total:</span> {currency}
-                {orderSummary.totalAmount.toLocaleString()}
+                {formatMoney(orderSummary.totalAmount, true)}
               </p>
               <p>
                 <span className="font-medium">Payment:</span>{" "}
