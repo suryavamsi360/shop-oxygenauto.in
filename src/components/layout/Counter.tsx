@@ -21,7 +21,7 @@ const Counter = ({ itemId, maxStock, className = "" }: CounterProps) => {
       <button
         type="button"
         onClick={() => removeFromCart(itemId)}
-        className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-lg font-semibold text-slate-700 transition hover:bg-slate-200 active:scale-95"
+        className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-lg font-semibold text-slate-700 transition hover:bg-slate-200 active:scale-95 "
       >
         −
       </button>

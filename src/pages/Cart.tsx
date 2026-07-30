@@ -3,13 +3,14 @@ import { Trash2Icon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import Counter from "../components/layout/Counter";
-import OrderSummary from "../components/layout/OrderSummary";
+import OrderSummary from "../components/layout/OrderSummary.tsx";
 import PageTitle from "../components/layout/PageTitle";
 
 import { useCartStore } from "../store/cartStore";
 import { useProductStore } from "../store/productStore";
 import type { ProductListItem } from "../types/product";
 import { formatMoney, getCurrencySymbol } from "../utils/currency";
+import { REQUIREMENT_CTA_URL } from "../utils/requirementCta";
 
 const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
 
@@ -34,8 +35,14 @@ export default function Cart() {
 
   const products = useProductStore((state) => state.products);
 
-  const [cartArray, setCartArray] = useState<Array<ProductListItem & { quantity: number }>>([]);
+  const [cartArray, setCartArray] = useState<
+    Array<ProductListItem & { quantity: number }>
+  >([]);
   const [totalPrice, setTotalPrice] = useState(0);
+
+  const handlePostRequirement = () => {
+    window.open(REQUIREMENT_CTA_URL, "_blank", "noopener,noreferrer");
+  };
 
   useEffect(() => {
     let total = 0;
@@ -74,6 +81,14 @@ export default function Cart() {
             className="rounded-full bg-slate-800 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-900 active:scale-95"
           >
             Go to All Products
+          </button>
+
+          <button
+            type="button"
+            onClick={handlePostRequirement}
+            className="rounded-full border border-slate-300 bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-95"
+          >
+            Post your requirement
           </button>
         </div>
       </div>
@@ -123,7 +138,10 @@ export default function Cart() {
                   </td>
 
                   <td className="text-center">
-                    <Counter itemId={item.itemId} maxStock={item.stockQuantity} />
+                    <Counter
+                      itemId={item.itemId}
+                      maxStock={item.stockQuantity}
+                    />
                   </td>
 
                   <td className="text-center">
