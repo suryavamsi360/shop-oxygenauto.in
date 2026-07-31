@@ -2,7 +2,10 @@ import type { ProductItem } from "../../types/product";
 
 type ProductTestingView = Pick<
   ProductItem,
-  "itemId" | "createdAt" | "updatedAt" | "compatibilityList"
+  | "itemId"
+  | "inventoryCreatedTime"
+  | "inventoryLastModifiedTime"
+  | "compatibilityList"
 >;
 
 interface ProductTestingInfoProps {
@@ -12,8 +15,8 @@ interface ProductTestingInfoProps {
 const ProductTestingInfo = ({ product }: ProductTestingInfoProps) => {
   const rows = [
     { label: "Item ID", value: product.itemId },
-    { label: "Created At", value: product.createdAt },
-    { label: "Updated At", value: product.updatedAt },
+    { label: "Created At", value: product.inventoryCreatedTime },
+    { label: "Updated At", value: product.inventoryLastModifiedTime },
     {
       label: "Compatibility Rows",
       value: String(product.compatibilityList?.length ?? 0),

@@ -37,6 +37,6 @@ export interface ProductItem extends ProductListItem {
   partNumber: string;
   condition: string;
   compatibilityList: CompatibilityItem[];
-  createdAt: string;
-  updatedAt: string;
+  inventoryCreatedTime: string;
+  inventoryLastModifiedTime: string;
 }
