@@ -3,6 +3,9 @@ export interface CompatibilityItem {
   line: string;
   model: string;
   configuration: string;
+  lineConfiguration: string;
+  startYear: number | null;
+  endYear: number | null;
   year: string;
   fuel: string;
   engineVolume: string;
@@ -22,6 +25,7 @@ export interface ProductListItem {
   model: string;
   className: string;
   configuration: string;
+  lineConfiguration: string;
   year: string;
   fuel: string;
   category: string;

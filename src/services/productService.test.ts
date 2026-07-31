@@ -41,12 +41,11 @@ describe("productService", () => {
           },
           facets: {
             maker: [{ value: "Honda", count: 1 }],
-            model: [{ value: "City", count: 1 }],
+            lineConfiguration: [
+              { value: "City 1.5 VTEC", count: 1 },
+            ],
             year: [{ value: "2020", count: 1 }],
-            fuelType: [{ value: "Petrol", count: 1 }],
-            group: [{ value: "Engine", count: 1 }],
-            className: [{ value: "Fuel System", count: 1 }],
-            subClass: [{ value: "Fuel Pump", count: 1 }],
+            partCategory: [{ value: "Fuel Pump", count: 1 }],
           },
         }),
       }),
@@ -58,6 +57,36 @@ describe("productService", () => {
     expect(result.total).toBe(1);
     expect(result.page).toBe(1);
     expect(result.facets.maker[0].value).toBe("Honda");
+    expect(Object.keys(result.facets).sort()).toEqual([
+      "lineConfiguration",
+      "maker",
+      "partCategory",
+      "year",
+    ]);
+  });
+
+  it("normalizes missing facet arrays", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          products: [],
+          facets: {
+            maker: [{ value: "Honda", count: 1 }],
+          },
+        }),
+      }),
+    );
+
+    const result = await fetchProducts();
+
+    expect(result.facets).toEqual({
+      maker: [{ value: "Honda", count: 1 }],
+      lineConfiguration: [],
+      year: [],
+      partCategory: [],
+    });
   });
 
   it("parses product detail response", async () => {

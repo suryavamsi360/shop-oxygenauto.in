@@ -10,48 +10,32 @@ import { REQUIREMENT_CTA_URL } from "../utils/requirementCta";
 
 interface FilterState {
   maker: string;
-  model: string;
-  configuration: string;
+  lineConfiguration: string;
   year: string;
-  fuelType: string;
-  group: string;
-  className: string;
-  subClass: string;
+  partCategory: string;
 }
 
 const INITIAL_FILTERS: FilterState = {
   maker: "",
-  model: "",
-  configuration: "",
+  lineConfiguration: "",
   year: "",
-  fuelType: "",
-  group: "",
-  className: "",
-  subClass: "",
+  partCategory: "",
 };
 
 const FILTER_KEYS: Array<keyof FilterState> = [
   "maker",
-  "model",
-  "configuration",
+  "lineConfiguration",
   "year",
-  "fuelType",
-  "group",
-  "className",
-  "subClass",
+  "partCategory",
 ];
 
 const ITEMS_PER_PAGE = 30;
 
 const normalizeFilters = (filters: FilterState): FilterState => ({
   maker: filters.maker.trim(),
-  model: filters.model.trim(),
-  configuration: filters.configuration.trim(),
+  lineConfiguration: filters.lineConfiguration.trim(),
   year: filters.year.trim(),
-  fuelType: filters.fuelType.trim(),
-  group: filters.group.trim(),
-  className: filters.className.trim(),
-  subClass: filters.subClass.trim(),
+  partCategory: filters.partCategory.trim(),
 });
 
 const Shop = () => {
@@ -75,14 +59,12 @@ const Shop = () => {
 
   const filterOptions = useMemo(() => {
     return {
-      makers: facets.maker.map((item) => item.value),
-      models: facets.model.map((item) => item.value),
-      configurations: facets.configuration.map((item) => item.value),
-      years: facets.year.map((item) => item.value),
-      fuelTypes: facets.fuelType.map((item) => item.value),
-      groups: facets.group.map((item) => item.value),
-      classNames: facets.className.map((item) => item.value),
-      subClasses: facets.subClass.map((item) => item.value),
+      makers: (facets.maker ?? []).map((item) => item.value),
+      lineConfigurations: (facets.lineConfiguration ?? []).map(
+        (item) => item.value,
+      ),
+      years: (facets.year ?? []).map((item) => item.value),
+      partCategories: (facets.partCategory ?? []).map((item) => item.value),
     };
   }, [facets]);
 
@@ -131,16 +113,12 @@ const Shop = () => {
         sanitizedFilters.maker = "";
       }
       if (
-        sanitizedFilters.model &&
-        !filterOptions.models.includes(sanitizedFilters.model)
+        sanitizedFilters.lineConfiguration &&
+        !filterOptions.lineConfigurations.includes(
+          sanitizedFilters.lineConfiguration,
+        )
       ) {
-        sanitizedFilters.model = "";
-      }
-      if (
-        sanitizedFilters.configuration &&
-        !filterOptions.configurations.includes(sanitizedFilters.configuration)
-      ) {
-        sanitizedFilters.configuration = "";
+        sanitizedFilters.lineConfiguration = "";
       }
       if (
         sanitizedFilters.year &&
@@ -149,28 +127,10 @@ const Shop = () => {
         sanitizedFilters.year = "";
       }
       if (
-        sanitizedFilters.fuelType &&
-        !filterOptions.fuelTypes.includes(sanitizedFilters.fuelType)
+        sanitizedFilters.partCategory &&
+        !filterOptions.partCategories.includes(sanitizedFilters.partCategory)
       ) {
-        sanitizedFilters.fuelType = "";
-      }
-      if (
-        sanitizedFilters.group &&
-        !filterOptions.groups.includes(sanitizedFilters.group)
-      ) {
-        sanitizedFilters.group = "";
-      }
-      if (
-        sanitizedFilters.className &&
-        !filterOptions.classNames.includes(sanitizedFilters.className)
-      ) {
-        sanitizedFilters.className = "";
-      }
-      if (
-        sanitizedFilters.subClass &&
-        !filterOptions.subClasses.includes(sanitizedFilters.subClass)
-      ) {
-        sanitizedFilters.subClass = "";
+        sanitizedFilters.partCategory = "";
       }
 
       const hasChanged = FILTER_KEYS.some(

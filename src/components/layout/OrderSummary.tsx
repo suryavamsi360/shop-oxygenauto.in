@@ -1,5 +1,5 @@
 import { PlusIcon, SquarePenIcon } from "lucide-react";
-import { useMemo, useState, type FormEvent, type MouseEvent as ReactMouseEvent } from "react";
+import { useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
 import AddressModal from "./AddressModal";
@@ -16,33 +16,6 @@ interface OrderSummaryProps {
   totalPrice: number;
 }
 
-interface Coupon {
-  code: string;
-  description: string;
-  kind: "percent" | "flat";
-  value: number;
-  minOrderAmount: number;
-  maxDiscount?: number;
-}
-
-const COUPONS: Coupon[] = [
-  {
-    code: "OXYGEN10",
-    description: "10% off on orders above Rs. 1,500",
-    kind: "percent",
-    value: 10,
-    minOrderAmount: 1500,
-    maxDiscount: 750,
-  },
-  {
-    code: "PARTNER150",
-    description: "Flat Rs. 150 off on orders above Rs. 2,000",
-    kind: "flat",
-    value: 150,
-    minOrderAmount: 2000,
-  },
-];
-
 const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
   const currency = getCurrencySymbol();
   const navigate = useNavigate();
@@ -56,12 +29,12 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
   const clearCart = useCartStore((state) => state.clearCart);
   const cartItems = useCartStore((state) => state.cartItems);
   const products = useProductStore((state) => state.products);
+  const productDetailsByItemId = useProductStore(
+    (state) => state.productDetailsByItemId,
+  );
 
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [couponCodeInput, setCouponCodeInput] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
-  const [couponError, setCouponError] = useState("");
   const [formError, setFormError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,7 +49,9 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
   const orderItems = useMemo(() => {
     return Object.entries(cartItems)
       .map(([itemId, quantity]) => {
-        const product = products.find((item) => item.itemId === itemId);
+        const product =
+          products.find((item) => item.itemId === itemId) ||
+          productDetailsByItemId[itemId];
 
         if (!product) {
           return null;
@@ -94,68 +69,9 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
         };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
-  }, [cartItems, products]);
+  }, [cartItems, productDetailsByItemId, products]);
 
-  const couponDiscount = useMemo(() => {
-    if (!appliedCoupon) {
-      return 0;
-    }
-
-    if (totalPrice < appliedCoupon.minOrderAmount) {
-      return 0;
-    }
-
-    if (appliedCoupon.kind === "percent") {
-      const rawDiscount = (appliedCoupon.value / 100) * totalPrice;
-      if (typeof appliedCoupon.maxDiscount === "number") {
-        return Math.min(rawDiscount, appliedCoupon.maxDiscount);
-      }
-      return rawDiscount;
-    }
-
-    return Math.min(appliedCoupon.value, totalPrice);
-  }, [appliedCoupon, totalPrice]);
-
-  const payableTotal = useMemo(() => {
-    return Number((totalPrice - couponDiscount).toFixed(2));
-  }, [totalPrice, couponDiscount]);
-
-  const handleCouponCode = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const normalizedCode = couponCodeInput.trim().toUpperCase();
-
-    if (!normalizedCode) {
-      setCouponError("Enter a coupon code.");
-      return;
-    }
-
-    const matchingCoupon = COUPONS.find(
-      (coupon) => coupon.code === normalizedCode,
-    );
-
-    if (!matchingCoupon) {
-      setCouponError("Invalid coupon code.");
-      return;
-    }
-
-    if (totalPrice < matchingCoupon.minOrderAmount) {
-      setCouponError(
-        `This coupon requires a minimum order of ${currency}${formatMoney(matchingCoupon.minOrderAmount)}.`,
-      );
-      return;
-    }
-
-    setAppliedCoupon(matchingCoupon);
-    setCouponError("");
-    setCouponCodeInput(normalizedCode);
-  };
-
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponError("");
-    setCouponCodeInput("");
-  };
+  const payableTotal = Number(totalPrice.toFixed(2));
 
   const handlePlaceOrder = async (
     event: ReactMouseEvent<HTMLButtonElement>,
@@ -338,7 +254,6 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
             <div className="flex flex-col gap-1 text-slate-400">
               <p>Subtotal:</p>
               <p>Shipping:</p>
-              {appliedCoupon && <p>Coupon:</p>}
             </div>
 
             <div className="flex flex-col gap-1 text-right font-medium">
@@ -348,58 +263,25 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
               </p>
 
               <p>Free</p>
-
-              {appliedCoupon && (
-                <p>
-                  -{currency}
-                  {formatMoney(couponDiscount, true)}
-                </p>
-              )}
             </div>
           </div>
 
-          {!appliedCoupon ? (
-            <>
-              <form
-                onSubmit={handleCouponCode}
-                className="mt-3 flex justify-center gap-3"
-              >
-                <input
-                  type="text"
-                  placeholder="Coupon Code"
-                  value={couponCodeInput}
-                  onChange={(event) => setCouponCodeInput(event.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-slate-500"
-                />
+          <div className="mt-3 flex justify-center gap-3">
+            <input
+              type="text"
+              placeholder="Coupons unavailable"
+              disabled
+              className="w-full cursor-not-allowed rounded-md border border-slate-200 bg-slate-100 px-3 py-2 text-slate-400 placeholder:text-slate-400"
+            />
 
-                <button
-                  type="submit"
-                  className="rounded-md bg-slate-800 px-4 py-2 font-medium text-white transition hover:bg-slate-900"
-                >
-                  Apply
-                </button>
-              </form>
-
-              {couponError && (
-                <p className="mt-2 text-xs text-rose-600">{couponError}</p>
-              )}
-            </>
-          ) : (
-            <div className="mt-3 flex items-start justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-emerald-800">
-              <div>
-                <p className="font-semibold">{appliedCoupon.code}</p>
-                <p className="text-xs">{appliedCoupon.description}</p>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleRemoveCoupon}
-                className="text-xs font-semibold underline underline-offset-2"
-              >
-                Remove
-              </button>
-            </div>
-          )}
+            <button
+              type="button"
+              disabled
+              className="cursor-not-allowed rounded-md bg-slate-300 px-4 py-2 font-medium text-white"
+            >
+              Apply
+            </button>
+          </div>
         </div>
 
         <div className="pt-4 text-slate-700">

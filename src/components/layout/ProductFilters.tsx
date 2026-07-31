@@ -1,25 +1,17 @@
 interface FilterState {
   maker: string;
-  model: string;
-  configuration: string;
+  lineConfiguration: string;
   year: string;
-  fuelType: string;
-  group: string;
-  className: string;
-  subClass: string;
+  partCategory: string;
 }
 
 interface ProductFiltersProps {
   filters: FilterState;
   options: {
     makers: string[];
-    models: string[];
-    configurations: string[];
+    lineConfigurations: string[];
     years: string[];
-    fuelTypes: string[];
-    groups: string[];
-    classNames: string[];
-    subClasses: string[];
+    partCategories: string[];
   };
   onFilterChange: (key: keyof FilterState, value: string) => void;
   onReset: () => void;
@@ -78,7 +70,7 @@ const ProductFilters = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <SelectFilter
           label="Maker"
           value={filters.maker}
@@ -88,9 +80,9 @@ const ProductFilters = ({
 
         <SelectFilter
           label="Model"
-          value={filters.model}
-          values={options.models}
-          onChange={(value) => onFilterChange("model", value)}
+          value={filters.lineConfiguration}
+          values={options.lineConfigurations}
+          onChange={(value) => onFilterChange("lineConfiguration", value)}
         />
 
         <SelectFilter
@@ -101,38 +93,10 @@ const ProductFilters = ({
         />
 
         <SelectFilter
-          label="Configuration"
-          value={filters.configuration}
-          values={options.configurations}
-          onChange={(value) => onFilterChange("configuration", value)}
-        />
-
-        <SelectFilter
-          label="Fuel Type"
-          value={filters.fuelType}
-          values={options.fuelTypes}
-          onChange={(value) => onFilterChange("fuelType", value)}
-        />
-
-        <SelectFilter
-          label="Group"
-          value={filters.group}
-          values={options.groups}
-          onChange={(value) => onFilterChange("group", value)}
-        />
-
-        <SelectFilter
-          label="Class"
-          value={filters.className}
-          values={options.classNames}
-          onChange={(value) => onFilterChange("className", value)}
-        />
-
-        <SelectFilter
-          label="Sub Class"
-          value={filters.subClass}
-          values={options.subClasses}
-          onChange={(value) => onFilterChange("subClass", value)}
+          label="Part Category"
+          value={filters.partCategory}
+          values={options.partCategories}
+          onChange={(value) => onFilterChange("partCategory", value)}
         />
       </div>
     </div>

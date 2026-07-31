@@ -5,13 +5,9 @@ export interface ProductCatalogQuery {
   limit?: number;
   search?: string;
   maker?: string;
-  model?: string;
-  configuration?: string;
+  lineConfiguration?: string;
   year?: string;
-  fuelType?: string;
-  group?: string;
-  className?: string;
-  subClass?: string;
+  partCategory?: string;
 }
 
 export interface FacetOption {
@@ -21,13 +17,9 @@ export interface FacetOption {
 
 export interface ProductFacets {
   maker: FacetOption[];
-  model: FacetOption[];
-  configuration: FacetOption[];
+  lineConfiguration: FacetOption[];
   year: FacetOption[];
-  fuelType: FacetOption[];
-  group: FacetOption[];
-  className: FacetOption[];
-  subClass: FacetOption[];
+  partCategory: FacetOption[];
 }
 
 export interface ProductCatalogResponse {
@@ -47,7 +39,7 @@ interface RawCatalogResponse {
     limit?: number;
     totalPages?: number;
   };
-  facets?: ProductFacets;
+  facets?: Partial<ProductFacets>;
 }
 
 interface RawProductDetailResponse {
@@ -60,16 +52,18 @@ const PRODUCTS_API_BASE_URL =
   import.meta.env.VITE_PRODUCTS_API_URL ||
   DEFAULT_BASE_URL;
 
-const EMPTY_FACETS: ProductFacets = {
-  maker: [],
-  model: [],
-  configuration: [],
-  year: [],
-  fuelType: [],
-  group: [],
-  className: [],
-  subClass: [],
-};
+const normalizeFacets = (
+  facets: Partial<ProductFacets> | undefined,
+): ProductFacets => ({
+  maker: Array.isArray(facets?.maker) ? facets.maker : [],
+  lineConfiguration: Array.isArray(facets?.lineConfiguration)
+    ? facets.lineConfiguration
+    : [],
+  year: Array.isArray(facets?.year) ? facets.year : [],
+  partCategory: Array.isArray(facets?.partCategory)
+    ? facets.partCategory
+    : [],
+});
 
 const buildCatalogUrl = (query: ProductCatalogQuery) => {
   const params = new URLSearchParams();
@@ -85,13 +79,9 @@ const buildCatalogUrl = (query: ProductCatalogQuery) => {
   const filterKeys: Array<keyof ProductCatalogQuery> = [
     "search",
     "maker",
-    "model",
-    "configuration",
+    "lineConfiguration",
     "year",
-    "fuelType",
-    "group",
-    "className",
-    "subClass",
+    "partCategory",
   ];
 
   for (const key of filterKeys) {
@@ -128,7 +118,7 @@ export const fetchProducts = async (
       page,
       limit,
       totalPages,
-      facets: payload.facets || EMPTY_FACETS,
+      facets: normalizeFacets(payload.facets),
     };
   } catch (error) {
     throw new Error(

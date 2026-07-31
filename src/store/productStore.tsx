@@ -11,13 +11,9 @@ export type { ProductItem, ProductListItem } from "../types/product";
 
 const EMPTY_FACETS: ProductFacets = {
   maker: [],
-  model: [],
-  configuration: [],
+  lineConfiguration: [],
   year: [],
-  fuelType: [],
-  group: [],
-  className: [],
-  subClass: [],
+  partCategory: [],
 };
 
 interface ProductState {

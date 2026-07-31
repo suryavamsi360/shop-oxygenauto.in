@@ -3,6 +3,7 @@ import { Trash2Icon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import Counter from "../components/layout/Counter";
+import Loading from "../components/layout/Loading";
 import OrderSummary from "../components/layout/OrderSummary.tsx";
 import PageTitle from "../components/layout/PageTitle";
 
@@ -34,22 +35,60 @@ export default function Cart() {
   const deleteItem = useCartStore((state) => state.deleteItem);
 
   const products = useProductStore((state) => state.products);
+  const productDetailsByItemId = useProductStore(
+    (state) => state.productDetailsByItemId,
+  );
+  const loadProductDetail = useProductStore(
+    (state) => state.loadProductDetail,
+  );
 
   const [cartArray, setCartArray] = useState<
     Array<ProductListItem & { quantity: number }>
   >([]);
   const [totalPrice, setTotalPrice] = useState(0);
+  const [isHydratingCart, setIsHydratingCart] = useState(
+    Object.keys(cartItems).length > 0,
+  );
 
   const handlePostRequirement = () => {
     window.open(REQUIREMENT_CTA_URL, "_blank", "noopener,noreferrer");
   };
 
   useEffect(() => {
+    const missingItemIds = Object.keys(cartItems).filter(
+      (itemId) =>
+        !products.some((product) => product.itemId === itemId) &&
+        !productDetailsByItemId[itemId],
+    );
+
+    if (missingItemIds.length === 0) {
+      setIsHydratingCart(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsHydratingCart(true);
+
+    Promise.allSettled(missingItemIds.map((itemId) => loadProductDetail(itemId)))
+      .finally(() => {
+        if (!cancelled) {
+          setIsHydratingCart(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cartItems, loadProductDetail, productDetailsByItemId, products]);
+
+  useEffect(() => {
     let total = 0;
     const items: Array<ProductListItem & { quantity: number }> = [];
 
     Object.entries(cartItems).forEach(([itemId, quantity]) => {
-      const product = products.find((p) => p.itemId === itemId);
+      const product =
+        products.find((item) => item.itemId === itemId) ||
+        productDetailsByItemId[itemId];
 
       if (product) {
         items.push({
@@ -63,7 +102,11 @@ export default function Cart() {
 
     setCartArray(items);
     setTotalPrice(total);
-  }, [cartItems, products]);
+  }, [cartItems, productDetailsByItemId, products]);
+
+  if (isHydratingCart) {
+    return <Loading />;
+  }
 
   if (cartArray.length === 0) {
     return (
