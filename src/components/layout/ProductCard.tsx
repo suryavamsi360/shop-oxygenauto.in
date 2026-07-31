@@ -1,3 +1,4 @@
+import { ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { useCartStore } from "../../store/cartStore";
@@ -30,6 +31,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
     (state) => state.cartItems[product.itemId] ?? 0,
   );
   const discountPercent = Math.round(product.discountPercent ?? 0);
+  const hasValidDiscount = discountPercent > 0 && discountPercent <= 100;
   const partTitle = product.partTitle?.trim() || "";
   const partName = product.partName?.trim() || "";
   const primaryName = partTitle || partName || product.name;
@@ -49,71 +51,93 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const isOutOfStock = product.stockQuantity <= 0;
 
   return (
-    <div className="group mx-auto flex h-full w-full max-w-[14rem] min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <article className="group flex h-full min-w-0 flex-col overflow-hidden rounded-md border border-[#D7DCD5] bg-white shadow-[var(--shadow-sm)] transition duration-200 hover:-translate-y-0.5 hover:border-[#AEB8AF] hover:shadow-[var(--shadow-md)]">
       <Link to={`/products/${product.itemId}`} className="block">
-        <div>
-          <div className="relative flex h-36 items-center justify-center overflow-hidden rounded-lg bg-[#F5F5F5] sm:h-60 sm:w-56">
-            {discountPercent > 0 && discountPercent <= 100 && (
-              <span className="absolute left-2.5 top-2.5 z-20 rounded-full border border-white/80 bg-[#00A63E] px-2.5 py-1 text-[11px] font-bold tracking-wide text-white">
-                {discountPercent}% OFF
-              </span>
-            )}
-            <img
-              src={getImageSrc(product.images)}
-              alt={primaryName}
-              className="absolute inset-0 z-0 m-auto h-full max-h-[88%] w-full max-w-[88%] object-contain object-center transition duration-300 group-hover:scale-105"
-            />
+        <div className="relative aspect-square overflow-hidden border-b border-[#E1E5DF] bg-[#F0F2ED]">
+          {hasValidDiscount && (
+            <span className="absolute left-1 top-1 z-20 rounded-sm bg-[#00A63E] px-1 py-0.5 text-[8px] font-bold leading-none text-white shadow-sm sm:left-2 sm:top-2 sm:px-1.5 sm:py-1 sm:text-[9px]">
+              {discountPercent}%<span className="hidden sm:inline"> off</span>
+            </span>
+          )}
+          <span
+            className={`absolute right-1 top-1 z-20 size-2 rounded-full border border-white sm:right-2 sm:top-2 ${isOutOfStock ? "bg-[#B42318]" : "bg-[#0D542B]"}`}
+            title={
+              isOutOfStock
+                ? "Out of stock"
+                : `${product.stockQuantity} in stock`
+            }
+          />
+          <img
+            src={getImageSrc(product.images)}
+            alt={primaryName}
+            className="absolute inset-0 m-auto h-full max-h-[82%] w-full max-w-[82%] object-contain transition duration-300 group-hover:scale-[1.04]"
+          />
+        </div>
+
+        <div className="p-1.5 sm:p-3 sm:pb-2">
+          <div className="mb-1 hidden items-center justify-between gap-1 text-[8px] font-bold uppercase text-[#778078] sm:flex">
+            <span className="truncate">{product.category || "Auto part"}</span>
+            <span
+              className={isOutOfStock ? "text-[#B42318]" : "text-[#0D542B]"}
+            >
+              {isOutOfStock
+                ? "Out of stock"
+                : `${product.stockQuantity} in stock`}
+            </span>
           </div>
 
-          <div className=" space-y-1.5 p-3 text-slate-800">
-            <div className="min-h-[3.25rem] min-w-0">
-              <p className="line-clamp-2 break-words text-sm font-semibold leading-snug text-slate-900 overflow-wrap-anywhere">
-                {primaryName}
+          <div className="min-w-0">
+            <h3 className="line-clamp-2 break-words text-xs font-semibold leading-4 text-[#202522] sm:text-sm sm:leading-5">
+              {primaryName}
+            </h3>
+            {showPartName && (
+              <p className="mt-0.5 line-clamp-1 text-[10px] leading-4 text-[#68706A] sm:text-xs">
+                {partName}
               </p>
-              {showPartName && (
-                <p className="mt-0.5 line-clamp-1 break-words text-xs text-slate-500">
-                  {partName}
-                </p>
-              )}
-            </div>
+            )}
+          </div>
 
-            <div className="flex min-h-[0.5rem] flex-col justify-center rounded-lg bg-slate-50">
-              <p className=" whitespace-nowrap text-lg font-bold text-slate-900">
+          <div className="mt-2 flex items-end gap-1.5">
+            <p className="font-display whitespace-nowrap text-lg font-bold leading-none text-[#202522] sm:text-xl">
+              {currency}
+              {formatMoney(product.price)}
+            </p>
+            {hasValidDiscount && product.mrp > 0 && (
+              <p className="hidden whitespace-nowrap text-[9px] font-medium text-[#8A918B] line-through md:block">
                 {currency}
-                {formatMoney(product.price)}
+                {formatMoney(product.mrp)}
               </p>
-              {Number.isFinite(product.mrp) && product.mrp > 0 && (
-                <p className="text-[11px] font-medium whitespace-nowrap text-slate-400 line-through">
-                  {currency}
-                  {formatMoney(product.mrp)}
-                </p>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </Link>
 
       {quantity > 0 ? (
-        <div className="flex justify-center">
+        <div className="mt-auto p-1.5 pt-0 sm:p-2 sm:pt-0">
           <Counter
             itemId={product.itemId}
             maxStock={product.stockQuantity}
-            className="w-1/2 justify-between"
+            className="w-full"
+            compact
           />
         </div>
       ) : (
-        <div className=" flex justify-center p-1">
+        <div className="mt-auto p-1.5 pt-0 sm:p-2 sm:pt-0">
           <button
             type="button"
             onClick={handleAddToCart}
             disabled={isOutOfStock}
-            className="h-9 w-1/2 rounded-full bg-[#0D542B] px-3 text-[11px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0A4423] hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label={
+              isOutOfStock ? "Out of stock" : `Add ${primaryName} to cart`
+            }
+            className="flex h-8 w-full items-center justify-center gap-1 rounded-md bg-[#0D542B] px-1 text-[9px] font-bold uppercase text-white transition hover:bg-[#093F20] disabled:cursor-not-allowed disabled:bg-[#8A918B]"
           >
-            {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+            {!isOutOfStock && <ShoppingCart size={13} />}
+            <span>{isOutOfStock ? "Out of stock" : "Add to cart"}</span>
           </button>
         </div>
       )}
-    </div>
+    </article>
   );
 };
 

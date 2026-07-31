@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, MoveLeft, RefreshCw } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  MoveLeft,
+  PackageSearch,
+  RefreshCw,
+} from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
+import Button from "../components/common/Button";
+import EmptyState from "../components/common/EmptyState";
 import Loading from "../components/layout/Loading";
 import ProductCard from "../components/layout/ProductCard";
 import ProductFilters from "../components/layout/ProductFilters";
@@ -177,27 +186,40 @@ const Shop = () => {
   };
 
   return (
-    <div className="mx-6 min-h-[70vh]">
-      <div className="mx-auto max-w-7xl">
-        <div className="my-6 flex flex-wrap items-center justify-between gap-3">
-          <h1
-            onClick={() => navigate("/products")}
-            className="flex cursor-pointer items-center gap-2 text-2xl text-slate-500"
-          >
-            {search && <MoveLeft size={20} />}
-            All <span className="font-medium text-slate-700">Products</span>
-          </h1>
+    <div className="min-h-[70vh] pb-20">
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+        <header className="flex flex-wrap items-end justify-between gap-4 py-8 sm:py-10">
+          <div>
+            <button
+              type="button"
+              onClick={() => navigate("/products")}
+              className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase text-[#0D542B] transition hover:text-[#093F20]"
+            >
+              {search && <MoveLeft size={15} />}
+              Parts catalogue
+            </button>
+            <h1 className="font-display text-4xl font-bold uppercase leading-none text-[#202522] sm:text-5xl">
+              {search ? `Results for “${search}”` : "Find the right part"}
+            </h1>
+            <p className="mt-2 text-sm text-[#68706A]">
+              {isLoading
+                ? "Checking current inventory"
+                : `${total.toLocaleString()} stocked ${total === 1 ? "part" : "parts"}`}
+            </p>
+          </div>
 
-          <button
+          <Button
             type="button"
             onClick={handleRefreshSearch}
             disabled={isLoading}
-            className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition enabled:hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            variant="secondary"
+            size="sm"
+            title="Refresh catalogue results"
           >
             <RefreshCw size={16} />
-            Refresh and search again
-          </button>
-        </div>
+            Refresh inventory
+          </Button>
+        </header>
 
         <ProductFilters
           filters={filters}
@@ -207,49 +229,53 @@ const Shop = () => {
         />
 
         {isLoading ? (
-          <Loading />
+          <Loading variant="catalog" />
         ) : error ? (
-          <div className="mx-auto flex max-w-md flex-col items-center gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center text-slate-500 shadow-sm">
-            <p>Something went wrong while loading products.</p>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={handleRefreshSearch}
-                className="rounded-md bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-900"
-              >
-                Refresh and search again
-              </button>
-
-              <button
-                type="button"
-                onClick={handlePostRequirement}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                Post your requirement
-              </button>
-            </div>
-          </div>
+          <EmptyState
+            icon={AlertCircle}
+            title="Catalogue unavailable"
+            description="We could not load the current inventory. Refresh the catalogue or send us the part you need."
+            action={
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Button type="button" onClick={handleRefreshSearch} size="sm">
+                  <RefreshCw size={15} />
+                  Try again
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handlePostRequirement}
+                  variant="secondary"
+                  size="sm"
+                >
+                  Post requirement
+                </Button>
+              </div>
+            }
+          />
         ) : products.length > 0 ? (
           <>
-            <div className="mx-auto grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:gap-8">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
 
             {totalPages > 1 && (
-              <div className="mb-24 mt-8 flex flex-wrap items-center justify-center gap-3">
+              <nav
+                className="mt-10 flex flex-wrap items-center justify-center gap-2 border-t border-[#D7DCD5] pt-6"
+                aria-label="Product pagination"
+              >
                 <button
                   type="button"
                   onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
                   disabled={currentPage === 1}
                   aria-label="Previous page"
-                  className="rounded-md border border-slate-300 p-2 text-slate-600 transition enabled:hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex size-10 items-center justify-center rounded-md border border-[#C9D0C8] bg-white text-[#515852] transition enabled:hover:border-[#0D542B] enabled:hover:text-[#0D542B] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <ChevronLeft size={18} />
                 </button>
 
-                <div className="flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-600">
+                <div className="flex h-10 items-center gap-2 rounded-md border border-[#C9D0C8] bg-white px-3 text-xs font-semibold text-[#68706A]">
                   <span>Page</span>
                   <input
                     type="number"
@@ -263,7 +289,7 @@ const Shop = () => {
                         handlePageJump();
                       }
                     }}
-                    className="w-16 rounded border border-slate-300 px-2 py-1 text-center text-slate-700 outline-none transition focus:border-slate-500"
+                    className="h-7 w-12 rounded border border-[#D7DCD5] bg-[#F4F5F1] px-1 text-center font-bold text-[#202522] outline-none focus:border-[#0D542B]"
                     aria-label="Go to page"
                   />
                   <span>of {totalPages}</span>
@@ -276,37 +302,46 @@ const Shop = () => {
                   }
                   disabled={currentPage === totalPages}
                   aria-label="Next page"
-                  className="rounded-md border border-slate-300 p-2 text-slate-600 transition enabled:hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex size-10 items-center justify-center rounded-md border border-[#C9D0C8] bg-white text-[#515852] transition enabled:hover:border-[#0D542B] enabled:hover:text-[#0D542B] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <ChevronRight size={18} />
                 </button>
-              </div>
+              </nav>
             )}
           </>
         ) : (search ?? "").trim().length > 0 ||
           FILTER_KEYS.some((key) => filters[key].trim().length > 0) ? (
-          <div className="mx-auto flex max-w-md flex-col items-center gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center text-slate-500 shadow-sm">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-800">
-                No products found.
-              </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                Send us your requirement and we will help source it.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={handlePostRequirement}
-              className="rounded-full bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-900 active:scale-95"
-            >
-              Post your requirement
-            </button>
-          </div>
+          <EmptyState
+            icon={PackageSearch}
+            title="No matching parts"
+            description="Adjust the fitment filters or send us your requirement and our team will help source it."
+            action={
+              <div className="flex flex-wrap justify-center gap-3">
+                <Button
+                  type="button"
+                  onClick={handleFilterReset}
+                  variant="secondary"
+                >
+                  Clear filters
+                </Button>
+                <Button type="button" onClick={handlePostRequirement}>
+                  Post requirement
+                </Button>
+              </div>
+            }
+          />
         ) : (
-          <div className="py-12 text-center text-slate-500">
-            Use filters to narrow results.
-          </div>
+          <EmptyState
+            icon={PackageSearch}
+            title="No stocked parts"
+            description="Current inventory is unavailable. Refresh the catalogue or send us the part you need."
+            action={
+              <Button type="button" onClick={handleRefreshSearch}>
+                <RefreshCw size={16} />
+                Refresh inventory
+              </Button>
+            }
+          />
         )}
       </div>
     </div>

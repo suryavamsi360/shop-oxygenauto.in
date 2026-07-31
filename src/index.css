@@ -1,1 +1,91 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
+
+:root {
+  font-family: "Manrope", sans-serif;
+  color: #202522;
+  background: #f4f5f1;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --canvas: #f4f5f1;
+  --surface: #ffffff;
+  --surface-muted: #e9ece6;
+  --ink: #202522;
+  --ink-muted: #68706a;
+  --border: #d7dcd5;
+  --brand: #0d542b;
+  --brand-hover: #093f20;
+  --brand-bright: #00a63e;
+  --signal: #c8f135;
+  --danger: #b42318;
+  --warning: #b54708;
+  --shadow-sm: 0 1px 2px rgb(25 35 29 / 0.06);
+  --shadow-md: 0 12px 30px rgb(25 35 29 / 0.1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--canvas);
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--ink);
+  background-color: var(--canvas);
+  background-image:
+    linear-gradient(rgb(13 84 43 / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(13 84 43 / 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: "Barlow Condensed", sans-serif;
+  letter-spacing: 0;
+}
+
+::selection {
+  color: white;
+  background: var(--brand);
+}
+
+:focus-visible {
+  outline: 3px solid rgb(0 166 62 / 0.32);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

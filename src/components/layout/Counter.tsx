@@ -4,9 +4,15 @@ interface CounterProps {
   itemId: string;
   maxStock?: number;
   className?: string;
+  compact?: boolean;
 }
 
-const Counter = ({ itemId, maxStock, className = "" }: CounterProps) => {
+const Counter = ({
+  itemId,
+  maxStock,
+  className = "",
+  compact = false,
+}: CounterProps) => {
   const quantity = useCartStore((state) => state.cartItems[itemId] ?? 0);
 
   const addToCart = useCartStore((state) => state.addToCart);
@@ -16,17 +22,20 @@ const Counter = ({ itemId, maxStock, className = "" }: CounterProps) => {
 
   return (
     <div
-      className={`inline-flex h-9 items-center gap-2 rounded-full border border-slate-300 bg-white px-2 text-slate-700 shadow-sm sm:gap-3 max-sm:text-sm ${className}`}
+      className={`inline-flex items-center justify-between rounded-md border border-[#BFC7BE] bg-white text-[#202522] shadow-sm ${compact ? "h-8 gap-0 px-0.5" : "h-11 gap-2 px-1.5"} ${className}`}
     >
       <button
         type="button"
         onClick={() => removeFromCart(itemId)}
-        className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-lg font-semibold text-slate-700 transition hover:bg-slate-200 active:scale-95 "
+        aria-label="Decrease quantity"
+        className={`flex items-center justify-center rounded font-semibold text-[#515852] transition hover:bg-[#E9ECE6] active:translate-y-px ${compact ? "size-6 text-sm" : "size-8 text-lg"}`}
       >
         −
       </button>
 
-      <span className="min-w-6 text-center text-sm font-semibold text-slate-800">
+      <span
+        className={`${compact ? "min-w-4 text-[10px]" : "min-w-7 text-sm"} text-center font-bold text-[#202522]`}
+      >
         {quantity}
       </span>
 
@@ -34,12 +43,13 @@ const Counter = ({ itemId, maxStock, className = "" }: CounterProps) => {
         <button
           type="button"
           onClick={() => addToCart(itemId, maxStock)}
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-lg font-semibold text-white transition hover:bg-slate-900 active:scale-95"
+          aria-label="Increase quantity"
+          className={`flex items-center justify-center rounded bg-[#0D542B] font-semibold text-white transition hover:bg-[#093F20] active:translate-y-px ${compact ? "size-6 text-sm" : "size-8 text-lg"}`}
         >
           +
         </button>
       ) : (
-        <span className="h-7 w-7" aria-hidden="true" />
+        <span className={compact ? "size-6" : "size-8"} aria-hidden="true" />
       )}
     </div>
   );
