@@ -30,11 +30,10 @@ const ProductCard = ({ product }: ProductCardProps) => {
     (state) => state.cartItems[product.itemId] ?? 0,
   );
   const discountPercent = Math.round(product.discountPercent ?? 0);
-  const primaryName =
-    product.partTitle?.trim() || product.partName?.trim() || product.name;
+  const partTitle = product.partTitle?.trim() || "";
   const partName = product.partName?.trim() || "";
-  const showPartName =
-    partName.length > 0 && partName.toLowerCase() !== primaryName.toLowerCase();
+  const primaryName = partTitle || partName || product.name;
+  const showPartName = partTitle.length > 0 && partName.length > 0;
 
   const handleAddToCart = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
