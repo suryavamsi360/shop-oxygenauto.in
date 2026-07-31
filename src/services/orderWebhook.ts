@@ -1,10 +1,4 @@
-const API_BASE_URL =
-  import.meta.env.VITE_ORDER_API_URL ||
-  import.meta.env.VITE_PRODUCTS_API_BASE_URL ||
-  import.meta.env.VITE_PRODUCTS_API_URL ||
-  "http://localhost:8000/api";
-
-const ORDER_API_URL = `${API_BASE_URL.replace(/\/$/, "")}/orders/place`;
+const ORDER_WEBHOOK_URL = import.meta.env.VITE_ORDER_WEBHOOK_URL;
 
 export interface OrderWebhookPayload {
   orderSummary: {
@@ -29,20 +23,14 @@ export interface OrderWebhookPayload {
   webhookSource: string;
 }
 
-export interface OrderWebhookResponse {
-  status: "success" | "partial_success" | "error";
-  submissionStatus?: "success" | "partial_success" | "error";
-  forwarded?: boolean;
-  retryable?: boolean;
-  webhookStatus?: string;
-  webhookStatusCode?: number;
-  webhookError?: string;
-}
-
 export const sendOrderWebhook = async (
   payload: OrderWebhookPayload,
-): Promise<OrderWebhookResponse> => {
-  const response = await fetch(ORDER_API_URL, {
+): Promise<void> => {
+  if (!ORDER_WEBHOOK_URL) {
+    throw new Error("Order webhook is not configured.");
+  }
+
+  const response = await fetch(ORDER_WEBHOOK_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -50,14 +38,7 @@ export const sendOrderWebhook = async (
     body: JSON.stringify(payload),
   });
 
-  const responseBody = (await response.json()) as OrderWebhookResponse;
-
-  if (!response.ok && response.status !== 207) {
-    throw new Error(
-      responseBody.webhookError ||
-        `Order request failed with status ${response.status}`,
-    );
+  if (!response.ok) {
+    throw new Error(`Order request failed with status ${response.status}.`);
   }
-
-  return responseBody;
 };
