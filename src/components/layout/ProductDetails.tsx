@@ -38,6 +38,11 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
   const itemId = product.itemId;
   const quantity = cart[itemId] ?? 0;
   const isOutOfStock = product.stockQuantity <= 0;
+  const primaryName =
+    product.partTitle?.trim() || product.partName?.trim() || product.name;
+  const partName = product.partName?.trim() || "";
+  const showPartName =
+    partName.length > 0 && partName.toLowerCase() !== primaryName.toLowerCase();
 
   const addToCartHandler = () => {
     if (isOutOfStock || quantity >= product.stockQuantity) {
@@ -60,7 +65,7 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
             >
               <img
                 src={getImageSrc([image])}
-                alt={product.name}
+                alt={primaryName}
                 className="max-h-20 transition group-hover:scale-105 group-active:scale-95"
               />
             </div>
@@ -70,7 +75,7 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
         <div className="flex h-96 items-center justify-center rounded-lg bg-slate-100 sm:h-[450px] sm:w-[450px]">
           <img
             src={mainImage}
-            alt={product.name}
+            alt={primaryName}
             className="max-h-72 object-contain"
           />
         </div>
@@ -78,9 +83,10 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
 
       {/* Details */}
       <div className="flex-1">
-        <h1 className="text-3xl font-semibold text-slate-800">
-          {product.name}
-        </h1>
+        <h1 className="text-3xl font-semibold text-slate-800">{primaryName}</h1>
+        {showPartName && (
+          <p className="mt-1 text-sm text-slate-500">{partName}</p>
+        )}
 
         {/* Price */}
         <div className="my-6 flex items-start gap-3 text-2xl font-semibold text-slate-800">

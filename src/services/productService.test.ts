@@ -15,22 +15,25 @@ describe("productService", () => {
         json: async () => ({
           products: [
             {
-              id: "ITM-1",
               itemId: "ITM-1",
-              name: "Sample Product",
+              partTitle: "Front Pulse Generator",
+              itemName: "Sample Product",
               mrp: 1000,
-              price: 900,
+              salePrice: 900,
               discountPercent: 10,
               images: ["/placeholder-image.svg"],
-              maker: "Honda",
-              model: "City",
               className: "Fuel System",
-              configuration: "1.5 VTEC",
-              year: "2020",
-              fuel: "Petrol",
-              category: "Engine",
-              subCategory: "Fuel Pump",
-              stockQuantity: 5,
+              groupName: "Engine",
+              subClass: "Fuel Pump",
+              quantity: 5,
+              availableStock: 3,
+              compatibility: {
+                maker: "Honda",
+                model: "City",
+                configuration: "1.5 VTEC",
+                year: 2020,
+                fuelType: "Petrol",
+              },
             },
           ],
           pagination: {
@@ -54,6 +57,14 @@ describe("productService", () => {
     const result = await fetchProducts({ page: 1, limit: 30, maker: "Honda" });
 
     expect(result.products).toHaveLength(1);
+    expect(result.products[0]).toMatchObject({
+      name: "Front Pulse Generator",
+      partName: "Sample Product",
+      price: 900,
+      stockQuantity: 5,
+      category: "Engine",
+      maker: "Honda",
+    });
     expect(result.total).toBe(1);
     expect(result.page).toBe(1);
     expect(result.facets.maker[0].value).toBe("Honda");
@@ -96,28 +107,29 @@ describe("productService", () => {
         ok: true,
         json: async () => ({
           product: {
-            id: "ITM-1",
             itemId: "ITM-1",
-            sourceReferenceId: "REF-1",
-            name: "Sample Product",
-            description: "Sample description",
+            partTitle: "Front Pulse Generator",
+            itemName: "Sample Product",
+            salesDescription: "Sample description",
             partNumber: "PN-1",
             sku: "SKU-1",
-            stockQuantity: 5,
+            quantity: 5,
+            availableStock: 5,
             condition: "Refurbished",
-            chassisNumber: "CH-1",
             mrp: 1000,
-            price: 900,
+            salePrice: 900,
             discountPercent: 10,
             images: ["/placeholder-image.svg"],
-            maker: "Honda",
-            model: "City",
             className: "Fuel System",
-            configuration: "1.5 VTEC",
-            year: "2020",
-            fuel: "Petrol",
-            category: "Engine",
-            subCategory: "Fuel Pump",
+            groupName: "Engine",
+            subClass: "Fuel Pump",
+            compatibility: {
+              maker: "Honda",
+              model: "City",
+              configuration: "1.5 VTEC",
+              year: 2020,
+              fuelType: "Petrol",
+            },
             compatibilityList: [],
             inventoryCreatedTime: "2026-01-01T00:00:00.000Z",
             inventoryLastModifiedTime: "2026-01-02T00:00:00.000Z",

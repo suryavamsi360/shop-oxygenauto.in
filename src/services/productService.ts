@@ -31,8 +31,47 @@ export interface ProductCatalogResponse {
   facets: ProductFacets;
 }
 
+interface RawCompatibilityItem {
+  maker?: string;
+  line?: string;
+  model?: string;
+  configuration?: string;
+  lineConfiguration?: string;
+  startYear?: number | null;
+  endYear?: number | null;
+  year?: number | string | null;
+  fuelType?: string;
+  engineVolume?: number | string;
+  bodyType?: string;
+}
+
+interface RawProductListItem {
+  itemId?: string;
+  itemName?: string;
+  partTitle?: string;
+  salePrice?: number | string;
+  mrp?: number | string;
+  discountPercent?: number | string;
+  quantity?: number | string;
+  availableStock?: number | string;
+  images?: string[];
+  groupName?: string;
+  className?: string;
+  subClass?: string;
+  compatibility?: RawCompatibilityItem | null;
+}
+
+interface RawProductItem extends RawProductListItem {
+  salesDescription?: string;
+  partNumber?: string;
+  condition?: string;
+  compatibilityList?: RawCompatibilityItem[];
+  inventoryCreatedTime?: string;
+  inventoryLastModifiedTime?: string;
+}
+
 interface RawCatalogResponse {
-  products?: ProductListItem[];
+  products?: RawProductListItem[];
   pagination?: {
     total?: number;
     page?: number;
@@ -43,7 +82,7 @@ interface RawCatalogResponse {
 }
 
 interface RawProductDetailResponse {
-  product?: ProductItem;
+  product?: RawProductItem;
 }
 
 const DEFAULT_BASE_URL = "http://localhost:8000/api";
@@ -63,6 +102,77 @@ const normalizeFacets = (
   partCategory: Array.isArray(facets?.partCategory)
     ? facets.partCategory
     : [],
+});
+
+const toText = (value: unknown) => String(value ?? "").trim();
+
+const toNumber = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizeProduct = (product: RawProductListItem): ProductListItem => {
+  const compatibility = product.compatibility;
+  const partTitle = toText(product.partTitle);
+  const partName = toText(product.itemName);
+
+  return {
+    id: toText(product.itemId),
+    itemId: toText(product.itemId),
+    name: partTitle || partName,
+    partTitle,
+    partName,
+    stockQuantity: Math.max(
+      0,
+      Math.trunc(
+        Math.max(
+          toNumber(product.availableStock),
+          toNumber(product.quantity),
+        ),
+      ),
+    ),
+    mrp: toNumber(product.mrp),
+    price: toNumber(product.salePrice),
+    discountPercent: toNumber(product.discountPercent),
+    images: Array.isArray(product.images) ? product.images : [],
+    maker: toText(compatibility?.maker),
+    model: toText(compatibility?.model || compatibility?.line),
+    className: toText(product.className),
+    configuration: toText(compatibility?.configuration),
+    lineConfiguration: toText(compatibility?.lineConfiguration),
+    year: toText(compatibility?.year),
+    fuel: toText(compatibility?.fuelType),
+    category: toText(product.groupName),
+    subCategory: toText(product.subClass),
+  };
+};
+
+const normalizeCompatibility = (
+  compatibility: RawCompatibilityItem,
+): ProductItem["compatibilityList"][number] => ({
+  maker: toText(compatibility.maker),
+  line: toText(compatibility.line),
+  model: toText(compatibility.model),
+  configuration: toText(compatibility.configuration),
+  lineConfiguration: toText(compatibility.lineConfiguration),
+  startYear: compatibility.startYear ?? null,
+  endYear: compatibility.endYear ?? null,
+  year: toText(compatibility.year),
+  fuel: toText(compatibility.fuelType),
+  engineVolume: toText(compatibility.engineVolume),
+  bodyType: toText(compatibility.bodyType),
+});
+
+const normalizeProductDetail = (product: RawProductItem): ProductItem => ({
+  ...normalizeProduct(product),
+  description: toText(product.salesDescription),
+  partNumber: toText(product.partNumber),
+  condition: toText(product.condition),
+  compatibilityList: Array.isArray(product.compatibilityList)
+    ? product.compatibilityList.map(normalizeCompatibility)
+    : [],
+  inventoryCreatedTime: toText(product.inventoryCreatedTime),
+  inventoryLastModifiedTime: toText(product.inventoryLastModifiedTime),
 });
 
 const buildCatalogUrl = (query: ProductCatalogQuery) => {
@@ -106,7 +216,9 @@ export const fetchProducts = async (
 
     const payload = (await response.json()) as RawCatalogResponse;
 
-    const products = Array.isArray(payload.products) ? payload.products : [];
+    const products = Array.isArray(payload.products)
+      ? payload.products.map(normalizeProduct)
+      : [];
     const total = Number(payload.pagination?.total || 0);
     const page = Number(payload.pagination?.page || query.page || 1);
     const limit = Number(payload.pagination?.limit || query.limit || 30);
@@ -152,5 +264,5 @@ export const fetchProductDetail = async (itemId: string): Promise<ProductItem> =
     throw new Error("Product details response is invalid.");
   }
 
-  return payload.product;
+  return normalizeProductDetail(payload.product);
 };

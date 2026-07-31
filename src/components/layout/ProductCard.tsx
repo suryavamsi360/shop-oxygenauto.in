@@ -30,6 +30,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
     (state) => state.cartItems[product.itemId] ?? 0,
   );
   const discountPercent = Math.round(product.discountPercent ?? 0);
+  const primaryName =
+    product.partTitle?.trim() || product.partName?.trim() || product.name;
+  const partName = product.partName?.trim() || "";
+  const showPartName =
+    partName.length > 0 && partName.toLowerCase() !== primaryName.toLowerCase();
 
   const handleAddToCart = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -49,37 +54,39 @@ const ProductCard = ({ product }: ProductCardProps) => {
       <Link to={`/products/${product.itemId}`} className="block">
         <div>
           <div className="relative flex h-36 items-center justify-center overflow-hidden rounded-lg bg-[#F5F5F5] sm:h-60 sm:w-56">
-            {discountPercent > 0 && (
+            {discountPercent > 0 && discountPercent <= 100 && (
               <span className="absolute left-2.5 top-2.5 z-20 rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white shadow-sm">
                 {discountPercent}% OFF
               </span>
             )}
             <img
               src={getImageSrc(product.images)}
-              alt={product.name}
+              alt={primaryName}
               className="absolute inset-0 z-0 m-auto h-full max-h-[88%] w-full max-w-[88%] object-contain object-center transition duration-300 group-hover:scale-105"
             />
           </div>
 
           <div className="mt-2 space-y-1.5 p-3 text-slate-800">
-            <div className="min-w-0">
+            <div className="min-h-[3.25rem] min-w-0">
               <p className="line-clamp-2 break-words text-sm font-semibold leading-snug text-slate-900 overflow-wrap-anywhere">
-                {product.name}
+                {primaryName}
               </p>
+              {showPartName && (
+                <p className="mt-0.5 line-clamp-1 break-words text-xs text-slate-500">
+                  {partName}
+                </p>
+              )}
             </div>
 
-            <div className="flex items-end justify-between gap-2 rounded-lg bg-slate-50 p-3 ">
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
-                  Sale price
-                </p>
-                <p className="text-base font-bold whitespace-nowrap text-slate-900">
-                  {currency}
-                  {formatMoney(product.price)}
-                </p>
-              </div>
-
-              {product.mrp && product.mrp > product.price && (
+            <div className="flex min-h-[5.5rem] flex-col justify-center rounded-lg bg-slate-50 p-3">
+              <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
+                Price
+              </p>
+              <p className="mt-0.5 whitespace-nowrap text-lg font-bold text-slate-900">
+                {currency}
+                {formatMoney(product.price)}
+              </p>
+              {Number.isFinite(product.mrp) && product.mrp > 0 && (
                 <p className="text-[11px] font-medium whitespace-nowrap text-slate-400 line-through">
                   {currency}
                   {formatMoney(product.mrp)}

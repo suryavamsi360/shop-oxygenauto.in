@@ -38,9 +38,7 @@ export default function Cart() {
   const productDetailsByItemId = useProductStore(
     (state) => state.productDetailsByItemId,
   );
-  const loadProductDetail = useProductStore(
-    (state) => state.loadProductDetail,
-  );
+  const loadProductDetail = useProductStore((state) => state.loadProductDetail);
 
   const [cartArray, setCartArray] = useState<
     Array<ProductListItem & { quantity: number }>
@@ -69,12 +67,13 @@ export default function Cart() {
     let cancelled = false;
     setIsHydratingCart(true);
 
-    Promise.allSettled(missingItemIds.map((itemId) => loadProductDetail(itemId)))
-      .finally(() => {
-        if (!cancelled) {
-          setIsHydratingCart(false);
-        }
-      });
+    Promise.allSettled(
+      missingItemIds.map((itemId) => loadProductDetail(itemId)),
+    ).finally(() => {
+      if (!cancelled) {
+        setIsHydratingCart(false);
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -165,13 +164,26 @@ export default function Cart() {
                     <div className="flex size-18 items-center justify-center rounded-md bg-slate-100">
                       <img
                         src={getImageSrc(item.images)}
-                        alt={item.name}
+                        alt={item.partTitle || item.partName || item.name}
                         className="h-14 w-auto"
                       />
                     </div>
 
                     <div>
-                      <p className="max-sm:text-sm">{item.name}</p>
+                      <p className="max-sm:text-sm">
+                        {item.partTitle || item.partName || item.name}
+                      </p>
+                      {item.partName &&
+                        item.partName.toLowerCase() !==
+                          (
+                            item.partTitle ||
+                            item.partName ||
+                            item.name
+                          ).toLowerCase() && (
+                          <p className="text-xs text-slate-500">
+                            {item.partName}
+                          </p>
+                        )}
                       <p className="text-xs text-slate-500">{item.category}</p>
                       <p>
                         {currency}

@@ -16,6 +16,8 @@ export interface ProductListItem {
   id: string;
   itemId: string;
   name: string;
+  partTitle: string;
+  partName: string;
   stockQuantity: number;
   mrp: number;
   price: number;
