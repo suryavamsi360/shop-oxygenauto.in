@@ -1,11 +1,6 @@
 import { CheckCircle2 } from "lucide-react";
-import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
-import {
-  sendOrderWebhook,
-  type OrderWebhookPayload,
-} from "../services/orderWebhook";
 import { formatMoney, getCurrencySymbol } from "../utils/currency";
 
 interface OrderSummaryState {
@@ -19,9 +14,6 @@ interface OrderSummaryState {
 
 interface LocationState {
   orderSummary?: OrderSummaryState;
-  submissionStatus?: "success" | "partial_success" | "error";
-  webhookError?: string;
-  retryPayload?: OrderWebhookPayload | null;
 }
 
 const OrderSuccess = () => {
@@ -29,40 +21,6 @@ const OrderSuccess = () => {
   const location = useLocation();
   const state = location.state as LocationState | null;
   const orderSummary = state?.orderSummary;
-  const submissionStatus = state?.submissionStatus;
-  const webhookError = state?.webhookError;
-  const retryPayload = state?.retryPayload;
-
-  const [retryMessage, setRetryMessage] = useState("");
-  const [isRetrying, setIsRetrying] = useState(false);
-
-  const handleRetry = async () => {
-    if (!retryPayload) {
-      return;
-    }
-
-    setIsRetrying(true);
-    setRetryMessage("");
-
-    try {
-      const result = await sendOrderWebhook(retryPayload);
-
-      if (result.submissionStatus === "success" || result.status === "success") {
-        setRetryMessage("Order forwarded successfully.");
-        return;
-      }
-
-      setRetryMessage(
-        result.webhookError || "Order forwarding is still pending.",
-      );
-    } catch (error) {
-      setRetryMessage(
-        error instanceof Error ? error.message : "Retry failed.",
-      );
-    } finally {
-      setIsRetrying(false);
-    }
-  };
 
   return (
     <div className="mx-6 flex min-h-[75vh] items-center justify-center">
@@ -74,23 +32,9 @@ const OrderSuccess = () => {
         </h1>
 
         <p className="mt-3 text-slate-600">
-          {submissionStatus === "partial_success"
-            ? "Your order was captured, but the processing webhook needs another try."
-            : "Your order has been placed successfully. We will share shipping details with you soon."}
+          Your order has been placed successfully. We will share shipping
+          details with you soon.
         </p>
-
-        {webhookError && submissionStatus === "partial_success" && (
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-900">
-            <p className="font-semibold">Processing issue</p>
-            <p className="mt-1">{webhookError}</p>
-          </div>
-        )}
-
-        {retryMessage && (
-          <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4 text-left text-sm text-sky-900">
-            {retryMessage}
-          </div>
-        )}
 
         {orderSummary && (
           <div className="mt-6 rounded-xl border border-emerald-200 bg-white p-4 text-left text-sm text-slate-700">
@@ -141,17 +85,6 @@ const OrderSuccess = () => {
           >
             View Cart
           </Link>
-
-          {submissionStatus === "partial_success" && retryPayload && (
-            <button
-              type="button"
-              onClick={() => void handleRetry()}
-              disabled={isRetrying}
-              className="rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isRetrying ? "Retrying..." : "Retry order"}
-            </button>
-          )}
         </div>
       </div>
     </div>

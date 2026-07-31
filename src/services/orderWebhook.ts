@@ -37,7 +37,6 @@ export interface OrderWebhookResponse {
   webhookStatus?: string;
   webhookStatusCode?: number;
   webhookError?: string;
-  webhookResponse?: unknown;
 }
 
 export const sendOrderWebhook = async (

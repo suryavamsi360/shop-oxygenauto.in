@@ -54,7 +54,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         <div>
           <div className="relative flex h-36 items-center justify-center overflow-hidden rounded-lg bg-[#F5F5F5] sm:h-60 sm:w-56">
             {discountPercent > 0 && discountPercent <= 100 && (
-              <span className="absolute left-2.5 top-2.5 z-20 rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white shadow-sm">
+              <span className="absolute left-2.5 top-2.5 z-20 rounded-full border border-white/80 bg-[#00A63E] px-2.5 py-1 text-[11px] font-bold tracking-wide text-white">
                 {discountPercent}% OFF
               </span>
             )}
@@ -65,7 +65,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             />
           </div>
 
-          <div className="mt-2 space-y-1.5 p-3 text-slate-800">
+          <div className=" space-y-1.5 p-3 text-slate-800">
             <div className="min-h-[3.25rem] min-w-0">
               <p className="line-clamp-2 break-words text-sm font-semibold leading-snug text-slate-900 overflow-wrap-anywhere">
                 {primaryName}
@@ -77,11 +77,8 @@ const ProductCard = ({ product }: ProductCardProps) => {
               )}
             </div>
 
-            <div className="flex min-h-[5.5rem] flex-col justify-center rounded-lg bg-slate-50 p-3">
-              <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
-                Price
-              </p>
-              <p className="mt-0.5 whitespace-nowrap text-lg font-bold text-slate-900">
+            <div className="flex min-h-[0.5rem] flex-col justify-center rounded-lg bg-slate-50">
+              <p className=" whitespace-nowrap text-lg font-bold text-slate-900">
                 {currency}
                 {formatMoney(product.price)}
               </p>
@@ -97,20 +94,20 @@ const ProductCard = ({ product }: ProductCardProps) => {
       </Link>
 
       {quantity > 0 ? (
-        <div className="mt-2 flex justify-center p-1">
+        <div className="flex justify-center">
           <Counter
             itemId={product.itemId}
             maxStock={product.stockQuantity}
-            className="w-full justify-between"
+            className="w-1/2 justify-between"
           />
         </div>
       ) : (
-        <div className="mt-2 flex justify-center p-1">
+        <div className=" flex justify-center p-1">
           <button
             type="button"
             onClick={handleAddToCart}
             disabled={isOutOfStock}
-            className="h-9 w-full rounded-full bg-gradient-to-r from-slate-800 to-slate-700 px-3 text-[11px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
+            className="h-9 w-1/2 rounded-full bg-[#0D542B] px-3 text-[11px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0A4423] hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isOutOfStock ? "Out of Stock" : "Add to Cart"}
           </button>

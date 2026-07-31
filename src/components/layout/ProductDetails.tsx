@@ -38,6 +38,8 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
   const itemId = product.itemId;
   const quantity = cart[itemId] ?? 0;
   const isOutOfStock = product.stockQuantity <= 0;
+  const hasValidDiscount =
+    product.discountPercent > 0 && product.discountPercent <= 100;
   const primaryName =
     product.partTitle?.trim() || product.partName?.trim() || product.name;
   const partName = product.partName?.trim() || "";
@@ -95,14 +97,16 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
             {formatMoney(product.price)}
           </p>
 
-          <p className="text-xl text-slate-500 line-through">
-            {currency}
-            {formatMoney(product.mrp)}
-          </p>
+          {hasValidDiscount && (
+            <p className="text-xl text-slate-500 line-through">
+              {currency}
+              {formatMoney(product.mrp)}
+            </p>
+          )}
         </div>
 
         {/* Discount */}
-        {product.discountPercent && product.discountPercent > 0 && (
+        {hasValidDiscount && (
           <div className="flex items-center gap-2 text-slate-500">
             <Tag size={16} />
 

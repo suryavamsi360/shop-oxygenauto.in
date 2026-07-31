@@ -36,7 +36,6 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [formError, setFormError] = useState("");
-  const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedAddress = useMemo<Address | null>(() => {
@@ -91,7 +90,6 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
     }
 
     setFormError("");
-    setSubmitError("");
     setIsSubmitting(true);
 
     const sanitizedAddress = {
@@ -128,30 +126,16 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
     };
 
     try {
-      const result = await sendOrderWebhook(webhookPayload);
+      await sendOrderWebhook(webhookPayload);
 
       clearCart();
       navigate("/order-success", {
-        state: {
-          orderSummary,
-          submissionStatus: result.submissionStatus || result.status,
-          webhookError: result.webhookError,
-          retryPayload: result.retryable ? webhookPayload : null,
-        },
+        state: { orderSummary },
       });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Order submission failed.";
-
-      setSubmitError(message);
+    } catch {
       clearCart();
       navigate("/order-success", {
-        state: {
-          orderSummary,
-          submissionStatus: "partial_success",
-          webhookError: message,
-          retryPayload: webhookPayload,
-        },
+        state: { orderSummary },
       });
     } finally {
       setIsSubmitting(false);
@@ -199,7 +183,7 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
           {selectedAddress ? (
             <div className="flex items-center gap-2">
               <p>
-                {selectedAddress.name}, {selectedAddress.city}, {" "}
+                {selectedAddress.name}, {selectedAddress.city},{" "}
                 {selectedAddress.state}, {selectedAddress.pincode}
               </p>
 
@@ -230,7 +214,7 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
 
                   {addresses.map((address) => (
                     <option key={address.id} value={address.id}>
-                      {address.name}, {address.city}, {address.state}, {" "}
+                      {address.name}, {address.city}, {address.state},{" "}
                       {address.pincode}
                     </option>
                   ))}
@@ -302,9 +286,9 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
             {isSubmitting ? "Placing Order..." : "Place Order"}
           </button>
 
-          {(formError || submitError) && (
+          {formError && (
             <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-              {formError || submitError}
+              {formError}
             </div>
           )}
         </div>

@@ -15,8 +15,7 @@ interface ProductTestingInfoProps {
 const ProductTestingInfo = ({ product }: ProductTestingInfoProps) => {
   const rows = [
     { label: "Item ID", value: product.itemId },
-    { label: "Created At", value: product.inventoryCreatedTime },
-    { label: "Updated At", value: product.inventoryLastModifiedTime },
+
     {
       label: "Compatibility Rows",
       value: String(product.compatibilityList?.length ?? 0),
