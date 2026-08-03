@@ -17,29 +17,41 @@ const Product = () => {
   const loadProductDetail = useProductStore((state) => state.loadProductDetail);
   const isDetailsLoading = useProductStore((state) => state.isDetailsLoading);
 
-  const [product, setProduct] = useState<ProductItem | null>(null);
-  const [detailsError, setDetailsError] = useState("");
+  const [loadedProduct, setLoadedProduct] = useState<{
+    itemId: string;
+    product: ProductItem;
+  } | null>(null);
+  const [detailsError, setDetailsError] = useState<{
+    itemId: string;
+    message: string;
+  } | null>(null);
+  const product =
+    loadedProduct && loadedProduct.itemId === itemId
+      ? loadedProduct.product
+      : null;
+  const currentError =
+    detailsError && detailsError.itemId === itemId ? detailsError.message : "";
 
   useEffect(() => {
     if (!itemId) return;
 
     let isMounted = true;
 
-    setDetailsError("");
-
     void loadProductDetail(itemId)
       .then((response) => {
         if (!isMounted) return;
-        setProduct(response);
+        setLoadedProduct({ itemId, product: response });
+        setDetailsError(null);
       })
       .catch((error) => {
         if (!isMounted) return;
-        setDetailsError(
-          error instanceof Error
-            ? error.message
-            : "Something went wrong while loading product details.",
-        );
-        setProduct(null);
+        setDetailsError({
+          itemId,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Something went wrong while loading product details.",
+        });
       });
 
     return () => {
@@ -62,10 +74,10 @@ const Product = () => {
     return <Loading />;
   }
 
-  if (detailsError) {
+  if (currentError) {
     return (
       <div className="mx-6 py-12 text-center text-slate-500">
-        <p>{detailsError}</p>
+        <p>{currentError}</p>
       </div>
     );
   }
@@ -93,7 +105,7 @@ const Product = () => {
         </div>
 
         {/* Product Details */}
-        {product && <ProductDetails product={product} />}
+        {product && <ProductDetails key={product.itemId} product={product} />}
 
         {/* Description */}
         {product && <ProductDescription product={product} />}

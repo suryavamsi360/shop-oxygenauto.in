@@ -51,8 +51,6 @@ const toCatalogState = (response: ProductCatalogResponse) => ({
   total: response.total,
   page: response.page,
   limit: response.limit,
-  totalPages: response.totalPages,
-  hasSearched: true,
 });
 
 interface ProductState {
@@ -62,17 +60,12 @@ interface ProductState {
   total: number;
   page: number;
   limit: number;
-  totalPages: number;
-  hasSearched: boolean;
   isLoading: boolean;
   isRefreshing: boolean;
   isDetailsLoading: boolean;
   error: string | null;
   activeCatalogKey: string | null;
-  setProducts: (products: ProductListItem[]) => void;
   clearProducts: () => void;
-  getProductById: (id: string) => ProductListItem | undefined;
-  getProductDetailByItemId: (itemId: string) => ProductItem | undefined;
   loadProducts: (
     query?: ProductCatalogQuery,
     options?: LoadProductsOptions,
@@ -87,18 +80,11 @@ export const useProductStore = create<ProductState>((set, get) => ({
   total: 0,
   page: 1,
   limit: 12,
-  totalPages: 1,
-  hasSearched: false,
   isLoading: false,
   isRefreshing: false,
   isDetailsLoading: false,
   error: null,
   activeCatalogKey: null,
-
-  setProducts: (products) =>
-    set({
-      products,
-    }),
 
   clearProducts: () => {
     catalogCache.clear();
@@ -106,17 +92,12 @@ export const useProductStore = create<ProductState>((set, get) => ({
       products: [],
       total: 0,
       page: 1,
-      totalPages: 1,
       facets: EMPTY_FACETS,
-      hasSearched: false,
       isLoading: false,
       isRefreshing: false,
       activeCatalogKey: null,
     });
   },
-
-  getProductById: (id) => get().products.find((product) => product.id === id),
-  getProductDetailByItemId: (itemId) => get().productDetailsByItemId[itemId],
 
   loadProducts: async (query = {}, options = {}) => {
     const normalizedQuery = normalizeCatalogQuery(query);
@@ -188,9 +169,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
         total: 0,
         page: normalizedQuery.page,
         limit: normalizedQuery.limit,
-        totalPages: 1,
         facets: EMPTY_FACETS,
-        hasSearched: true,
         isLoading: false,
         isRefreshing: false,
       });

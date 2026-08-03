@@ -12,7 +12,6 @@ interface ProductCompatibilityListProps {
 const ProductCompatibilityList = ({
   product,
 }: ProductCompatibilityListProps) => {
-  const compatibilityList = product.compatibilityList ?? [];
   const [showAll, setShowAll] = useState(false);
   const rowsPerPage = 20;
 
@@ -24,7 +23,7 @@ const ProductCompatibilityList = ({
   };
 
   const sortedCompatibilityList = useMemo(() => {
-    const rows = [...compatibilityList];
+    const rows = [...(product.compatibilityList ?? [])];
 
     return [...rows].sort((left, right) => {
       const makerCompare = compareText(left.maker || "", right.maker || "");
@@ -57,7 +56,7 @@ const ProductCompatibilityList = ({
 
       return compareText(left.fuel || "", right.fuel || "");
     });
-  }, [compatibilityList]);
+  }, [product.compatibilityList]);
 
   const visibleCompatibilityList = useMemo(() => {
     if (showAll) {
@@ -94,7 +93,7 @@ const ProductCompatibilityList = ({
           </div>
         </div>
 
-        {compatibilityList.length > 0 ? (
+        {sortedCompatibilityList.length > 0 ? (
           <div className="mt-6">
             <div className="overflow-hidden rounded-xl border border-slate-200">
               <div className="overflow-x-auto">

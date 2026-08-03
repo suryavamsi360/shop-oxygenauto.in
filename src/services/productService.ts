@@ -87,11 +87,7 @@ interface RawProductDetailResponse {
   product?: RawProductItem;
 }
 
-const DEFAULT_BASE_URL = "http://localhost:8000/api";
-const PRODUCTS_API_BASE_URL =
-  import.meta.env.VITE_PRODUCTS_API_BASE_URL ||
-  import.meta.env.VITE_PRODUCTS_API_URL ||
-  DEFAULT_BASE_URL;
+import { API_BASE_URL } from "../config/api";
 
 const normalizeFacets = (
   facets: Partial<ProductFacets> | undefined,
@@ -209,7 +205,7 @@ const buildCatalogUrl = (query: ProductCatalogQuery) => {
     }
   }
 
-  return `${PRODUCTS_API_BASE_URL}/products?${params.toString()}`;
+  return `${API_BASE_URL}/products?${params.toString()}`;
 };
 
 export const fetchProducts = async (
@@ -245,6 +241,7 @@ export const fetchProducts = async (
       error instanceof Error
         ? error.message
         : "Something went wrong while loading products.",
+      { cause: error },
     );
   }
 };
@@ -255,7 +252,7 @@ export const fetchProductDetail = async (itemId: string): Promise<ProductItem> =
   }
 
   const response = await fetch(
-    `${PRODUCTS_API_BASE_URL}/products/${encodeURIComponent(itemId.trim())}`,
+    `${API_BASE_URL}/products/${encodeURIComponent(itemId.trim())}`,
   );
 
   if (!response.ok) {

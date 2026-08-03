@@ -61,9 +61,7 @@ const Shop = () => {
       ? requestedPage
       : 1;
   }, [searchParams]);
-  const [pageInput, setPageInput] = useState(String(currentPage));
-  const [showRefreshConfirmation, setShowRefreshConfirmation] =
-    useState(false);
+  const [showRefreshConfirmation, setShowRefreshConfirmation] = useState(false);
 
   const products = useProductStore((state) => state.products);
   const total = useProductStore((state) => state.total);
@@ -131,10 +129,6 @@ const Shop = () => {
   }, [currentPage, loadProducts, requestQuery, setSearchParams]);
 
   useEffect(() => {
-    setPageInput(String(currentPage));
-  }, [currentPage]);
-
-  useEffect(() => {
     if (!showRefreshConfirmation) {
       return;
     }
@@ -186,10 +180,9 @@ const Shop = () => {
     });
   };
 
-  const handlePageJump = () => {
+  const handlePageJump = (pageInput: string) => {
     const requestedPage = Number(pageInput);
     if (!Number.isFinite(requestedPage)) {
-      setPageInput(String(currentPage));
       return;
     }
 
@@ -314,15 +307,17 @@ const Shop = () => {
                 <div className="flex h-10 items-center gap-2 rounded-md border border-[#C9D0C8] bg-white px-3 text-xs font-semibold text-[#68706A]">
                   <span>Page</span>
                   <input
+                    key={currentPage}
                     type="number"
                     min={1}
                     max={totalPages}
-                    value={pageInput}
-                    onChange={(event) => setPageInput(event.target.value)}
-                    onBlur={handlePageJump}
+                    defaultValue={currentPage}
+                    onBlur={(event) =>
+                      handlePageJump(event.currentTarget.value)
+                    }
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
-                        handlePageJump();
+                        handlePageJump(event.currentTarget.value);
                       }
                     }}
                     className="h-7 w-12 rounded border border-[#D7DCD5] bg-[#F4F5F1] px-1 text-center font-bold text-[#202522] outline-none focus:border-[#0D542B]"

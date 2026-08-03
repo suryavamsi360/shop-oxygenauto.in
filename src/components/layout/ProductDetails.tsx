@@ -6,20 +6,7 @@ import Counter from "./Counter";
 import { useCartStore } from "../../store/cartStore";
 import type { ProductItem } from "../../types/product";
 import { formatMoney, getCurrencySymbol } from "../../utils/currency";
-
-const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
-
-const getImageSrc = (images: string[] = []) => {
-  const firstImage = images.find(
-    (image) => typeof image === "string" && image.trim().length > 0,
-  );
-
-  if (!firstImage) {
-    return PLACEHOLDER_IMAGE;
-  }
-
-  return firstImage;
-};
+import { getProductImage } from "../../utils/productImage";
 
 interface ProductDetailsProps {
   product: ProductItem;
@@ -30,7 +17,7 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
 
   const currency = getCurrencySymbol();
 
-  const [mainImage, setMainImage] = useState(getImageSrc(product.images));
+  const [mainImage, setMainImage] = useState(getProductImage(product.images));
 
   const cart = useCartStore((state) => state.cartItems);
   const addToCart = useCartStore((state) => state.addToCart);
@@ -62,11 +49,11 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
           {product.images.map((image, index) => (
             <div
               key={index}
-              onClick={() => setMainImage(getImageSrc([image]))}
+              onClick={() => setMainImage(getProductImage([image]))}
               className="group flex size-24 cursor-pointer items-center justify-center rounded-lg bg-slate-100"
             >
               <img
-                src={getImageSrc([image])}
+                src={getProductImage([image])}
                 alt={primaryName}
                 className="max-h-20 transition group-hover:scale-105 group-active:scale-95"
               />

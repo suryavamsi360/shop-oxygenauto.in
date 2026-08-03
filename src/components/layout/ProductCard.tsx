@@ -4,21 +4,8 @@ import { Link } from "react-router-dom";
 import { useCartStore } from "../../store/cartStore";
 import type { ProductListItem } from "../../types/product";
 import { formatMoney, getCurrencySymbol } from "../../utils/currency";
+import { getProductImage } from "../../utils/productImage";
 import Counter from "./Counter";
-
-const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
-
-const getImageSrc = (images: string[] = []) => {
-  const firstImage = images.find(
-    (image) => typeof image === "string" && image.trim().length > 0,
-  );
-
-  if (!firstImage) {
-    return PLACEHOLDER_IMAGE;
-  }
-
-  return firstImage;
-};
 
 interface ProductCardProps {
   product: ProductListItem;
@@ -68,7 +55,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             }
           />
           <img
-            src={getImageSrc(product.images)}
+            src={getProductImage(product.images)}
             alt={primaryName}
             className="absolute inset-0 m-auto h-full max-h-[82%] w-full max-w-[82%] object-contain transition duration-300 group-hover:scale-[1.04]"
           />

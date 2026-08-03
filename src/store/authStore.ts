@@ -2,7 +2,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { create } from "zustand";
 
 import { supabase } from "../config/supabase";
-import { API_BASE_URL } from "../services/authenticatedApi";
+import { API_BASE_URL } from "../config/api";
 
 const RETURN_TO_KEY = "oxygenauto-auth-return-to";
 

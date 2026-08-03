@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Trash2Icon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -12,21 +12,8 @@ import { useCartStore } from "../store/cartStore";
 import { useProductStore } from "../store/productStore";
 import type { ProductListItem } from "../types/product";
 import { formatMoney, getCurrencySymbol } from "../utils/currency";
+import { getProductImage } from "../utils/productImage";
 import { REQUIREMENT_CTA_URL } from "../utils/requirementCta";
-
-const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
-
-const getImageSrc = (images: string[] = []) => {
-  const firstImage = images.find(
-    (image) => typeof image === "string" && image.trim().length > 0,
-  );
-
-  if (!firstImage) {
-    return PLACEHOLDER_IMAGE;
-  }
-
-  return firstImage;
-};
 
 export default function Cart() {
   const currency = getCurrencySymbol();
@@ -42,13 +29,27 @@ export default function Cart() {
   );
   const loadProductDetail = useProductStore((state) => state.loadProductDetail);
 
-  const [cartArray, setCartArray] = useState<
-    Array<ProductListItem & { quantity: number }>
-  >([]);
-  const [totalPrice, setTotalPrice] = useState(0);
   const [isHydratingCart, setIsHydratingCart] = useState(
     Object.keys(cartItems).length > 0,
   );
+
+  const { cartArray, totalPrice } = useMemo(() => {
+    let total = 0;
+    const items: Array<ProductListItem & { quantity: number }> = [];
+
+    Object.entries(cartItems).forEach(([itemId, quantity]) => {
+      const product =
+        products.find((item) => item.itemId === itemId) ||
+        productDetailsByItemId[itemId];
+
+      if (product) {
+        items.push({ ...product, quantity });
+        total += product.price * Number(quantity);
+      }
+    });
+
+    return { cartArray: items, totalPrice: total };
+  }, [cartItems, productDetailsByItemId, products]);
 
   const handlePostRequirement = () => {
     window.open(REQUIREMENT_CTA_URL, "_blank", "noopener,noreferrer");
@@ -61,6 +62,7 @@ export default function Cart() {
   };
 
   useEffect(() => {
+    let cancelled = false;
     const missingItemIds = Object.keys(cartItems).filter(
       (itemId) =>
         !products.some((product) => product.itemId === itemId) &&
@@ -68,12 +70,17 @@ export default function Cart() {
     );
 
     if (missingItemIds.length === 0) {
-      setIsHydratingCart(false);
-      return;
+      queueMicrotask(() => {
+        if (!cancelled) setIsHydratingCart(false);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
 
-    let cancelled = false;
-    setIsHydratingCart(true);
+    queueMicrotask(() => {
+      if (!cancelled) setIsHydratingCart(true);
+    });
 
     Promise.allSettled(
       missingItemIds.map((itemId) => loadProductDetail(itemId)),
@@ -87,29 +94,6 @@ export default function Cart() {
       cancelled = true;
     };
   }, [cartItems, loadProductDetail, productDetailsByItemId, products]);
-
-  useEffect(() => {
-    let total = 0;
-    const items: Array<ProductListItem & { quantity: number }> = [];
-
-    Object.entries(cartItems).forEach(([itemId, quantity]) => {
-      const product =
-        products.find((item) => item.itemId === itemId) ||
-        productDetailsByItemId[itemId];
-
-      if (product) {
-        items.push({
-          ...product,
-          quantity,
-        });
-
-        total += product.price * Number(quantity);
-      }
-    });
-
-    setCartArray(items);
-    setTotalPrice(total);
-  }, [cartItems, productDetailsByItemId, products]);
 
   if (isHydratingCart) {
     return <Loading />;
@@ -187,7 +171,7 @@ export default function Cart() {
                       className="flex size-18 shrink-0 items-center justify-center rounded-md bg-slate-100 transition hover:ring-2 hover:ring-[#0D542B]/30"
                     >
                       <img
-                        src={getImageSrc(item.images)}
+                        src={getProductImage(item.images)}
                         alt={item.partTitle || item.partName || item.name}
                         className="h-14 w-auto"
                       />
