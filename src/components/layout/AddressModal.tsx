@@ -1,30 +1,82 @@
 import { XIcon } from "lucide-react";
 import { useState } from "react";
 
-import { useAddressStore, type AddressInput } from "../../store/addressStore";
+import {
+  useAddressStore,
+  type Address,
+  type AddressInput,
+} from "../../store/addressStore";
 
 interface AddressModalProps {
   setShowAddressModal: React.Dispatch<React.SetStateAction<boolean>>;
+  addressToEdit?: Address | null;
 }
 
-const AddressModal = ({ setShowAddressModal }: AddressModalProps) => {
+const STATES = [
+  "Delhi",
+  "Uttar Pradesh",
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chhattisgarh",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Orissa",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttarakhand",
+  "West Bengal",
+  "Andaman and Nicobar Islands",
+  "Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Jammu and Kashmir",
+  "Ladakh",
+  "Lakshadweep",
+  "Puducherry",
+  "Others",
+] as const;
+
+const AddressModal = ({
+  setShowAddressModal,
+  addressToEdit = null,
+}: AddressModalProps) => {
   const addAddress = useAddressStore((state) => state.addAddress);
+  const updateAddress = useAddressStore((state) => state.updateAddress);
   const [formError, setFormError] = useState("");
 
   const [address, setAddress] = useState<AddressInput>({
-    name: "",
-    mobile: "",
-    address1: "",
-    address2: "",
-    city: "",
-    state: "",
-    pincode: "",
-    landmark: "",
-    isDefault: false,
+    name: addressToEdit?.name || "",
+    mobile: addressToEdit?.mobile || "",
+    address1: addressToEdit?.address1 || "",
+    address2: addressToEdit?.address2 || "",
+    city: addressToEdit?.city || "",
+    state: addressToEdit?.state || "",
+    pincode: addressToEdit?.pincode || "",
+    landmark: addressToEdit?.landmark || "",
+    isDefault: addressToEdit?.isDefault || false,
   });
 
   const handleAddressChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
     const { name, value } = e.target;
 
@@ -71,7 +123,11 @@ const AddressModal = ({ setShowAddressModal }: AddressModalProps) => {
     setFormError("");
 
     try {
-      await addAddress(sanitizedAddress);
+      if (addressToEdit) {
+        await updateAddress({ ...sanitizedAddress, id: addressToEdit.id });
+      } else {
+        await addAddress(sanitizedAddress);
+      }
       setShowAddressModal(false);
     } catch (error) {
       setFormError(
@@ -87,7 +143,8 @@ const AddressModal = ({ setShowAddressModal }: AddressModalProps) => {
     >
       <div className="mx-6 flex w-full max-w-sm flex-col gap-5 text-slate-700">
         <h2 className="text-3xl">
-          Add New <span className="font-semibold">Address</span>
+          {addressToEdit ? "Edit" : "Add New"}{" "}
+          <span className="font-semibold">Address</span>
         </h2>
 
         <input
@@ -131,15 +188,22 @@ const AddressModal = ({ setShowAddressModal }: AddressModalProps) => {
             required
           />
 
-          <input
+          <select
             name="state"
             value={address.state}
             onChange={handleAddressChange}
             className="w-full rounded border border-slate-200 p-2 px-4 outline-none"
-            type="text"
-            placeholder="State"
             required
-          />
+          >
+            <option value="" disabled>
+              Select state
+            </option>
+            {STATES.map((state) => (
+              <option key={state} value={state}>
+                {state}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="flex gap-4">
@@ -173,7 +237,7 @@ const AddressModal = ({ setShowAddressModal }: AddressModalProps) => {
         />
 
         <button className="rounded-md bg-slate-800 py-2.5 text-sm font-medium text-white transition-all hover:bg-slate-900 active:scale-95">
-          SAVE ADDRESS
+          {addressToEdit ? "UPDATE ADDRESS" : "SAVE ADDRESS"}
         </button>
 
         {formError && <p className="text-sm text-red-600">{formError}</p>}
