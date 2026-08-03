@@ -13,6 +13,7 @@ const Login = () => {
   const authError = useAuthStore((state) => state.error);
   const signInWithPassword = useAuthStore((state) => state.signInWithPassword);
   const signUpWithPassword = useAuthStore((state) => state.signUpWithPassword);
+  const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle);
   const returnTo = searchParams.get("returnTo") || "/";
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [formError, setFormError] = useState("");
@@ -89,7 +90,31 @@ const Login = () => {
           Save delivery addresses and securely place orders from your account.
         </p>
 
-        <div className="mt-8 grid grid-cols-2 rounded-md border border-[#C9D0C8] bg-[#F1F3EF] p-1">
+        <Button
+          type="button"
+          size="lg"
+          className="mt-8 w-full"
+          isLoading={isSigningIn || !isInitialized}
+          onClick={() => void signInWithGoogle(returnTo)}
+        >
+          <span className="flex size-7 items-center justify-center rounded bg-white">
+            <img
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+              alt=""
+              aria-hidden="true"
+              className="size-4"
+            />
+          </span>
+          Continue with Google
+        </Button>
+
+        <div className="my-5 flex items-center gap-3 text-xs uppercase text-[#8A918B]">
+          <span className="h-px flex-1 bg-[#D7DCD5]" />
+          or use email / phone
+          <span className="h-px flex-1 bg-[#D7DCD5]" />
+        </div>
+
+        <div className="grid grid-cols-2 rounded-md border border-[#C9D0C8] bg-[#F1F3EF] p-1">
           <button
             type="button"
             onClick={() => switchMode("login")}

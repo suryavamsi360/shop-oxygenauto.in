@@ -139,9 +139,9 @@ const AddressModal = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="fixed inset-0 z-50 flex h-screen items-center justify-center bg-white/60 backdrop-blur"
+      className="fixed inset-0 z-[100] flex min-h-dvh items-center justify-center overflow-y-auto bg-slate-950/75 px-4 py-8 backdrop-blur-sm"
     >
-      <div className="mx-6 flex w-full max-w-sm flex-col gap-5 text-slate-700">
+      <div className="flex w-full max-w-md flex-col gap-5 rounded-lg border border-slate-200 bg-white p-6 text-slate-700 shadow-2xl sm:p-8">
         <h2 className="text-3xl">
           {addressToEdit ? "Edit" : "Add New"}{" "}
           <span className="font-semibold">Address</span>
@@ -245,7 +245,7 @@ const AddressModal = ({
 
       <XIcon
         size={30}
-        className="absolute top-5 right-5 cursor-pointer text-slate-500 hover:text-slate-700"
+        className="absolute top-5 right-5 cursor-pointer rounded bg-white p-1 text-slate-700 shadow hover:text-slate-950"
         onClick={() => setShowAddressModal(false)}
       />
     </form>

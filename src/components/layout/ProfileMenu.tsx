@@ -72,7 +72,7 @@ const ProfileMenu = ({ user, onSignOut }: ProfileMenuProps) => {
         {isOpen && (
           <div
             role="menu"
-            className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-[#C9D0C8] bg-white p-4 text-left shadow-xl"
+            className="fixed right-4 top-20 z-50 w-[calc(100vw-2rem)] max-w-sm rounded-md border border-[#C9D0C8] bg-white p-4 text-left shadow-xl sm:absolute sm:right-0 sm:top-[calc(100%+0.5rem)] sm:w-88"
           >
             <div className="border-b border-[#E1E5DF] pb-3">
               <p className="font-display text-lg font-bold uppercase text-[#202522]">
