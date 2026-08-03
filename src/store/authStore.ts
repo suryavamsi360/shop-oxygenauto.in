@@ -164,10 +164,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isSigningIn: true, error: null });
     window.sessionStorage.setItem(RETURN_TO_KEY, returnTo);
 
+    const isLocalhost = ["localhost", "127.0.0.1"].includes(
+      window.location.hostname,
+    );
+    const callbackPath = isLocalhost
+      ? "/auth/callback"
+      : "/?authCallback=google";
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}${callbackPath}`,
       },
     });
     if (error) {
