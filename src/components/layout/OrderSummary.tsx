@@ -1,15 +1,18 @@
 import { PlusIcon, SquarePenIcon } from "lucide-react";
-import { useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import { useNavigate } from "react-router-dom";
 
 import AddressModal from "./AddressModal";
+import { placeOrder } from "../../services/orderWebhook";
 import { useAddressStore, type Address } from "../../store/addressStore";
+import { useAuthStore } from "../../store/authStore";
 import { useCartStore } from "../../store/cartStore";
 import { useProductStore } from "../../store/productStore";
-import {
-  sendOrderWebhook,
-  type OrderWebhookPayload,
-} from "../../services/orderWebhook";
 import { formatMoney, getCurrencySymbol } from "../../utils/currency";
 
 interface OrderSummaryProps {
@@ -20,8 +23,13 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
   const currency = getCurrencySymbol();
   const navigate = useNavigate();
 
+  const user = useAuthStore((state) => state.user);
+  const isAuthInitialized = useAuthStore((state) => state.isInitialized);
   const addresses = useAddressStore((state) => state.addresses);
   const selectedAddressId = useAddressStore((state) => state.selectedAddressId);
+  const addressesError = useAddressStore((state) => state.error);
+  const loadAddresses = useAddressStore((state) => state.loadAddresses);
+  const resetAddresses = useAddressStore((state) => state.reset);
   const selectAddress = useAddressStore((state) => state.selectAddress);
   const clearSelectedAddress = useAddressStore(
     (state) => state.clearSelectedAddress,
@@ -33,7 +41,6 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
     (state) => state.productDetailsByItemId,
   );
 
-  const [paymentMethod, setPaymentMethod] = useState("COD");
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,51 +52,40 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
     );
   }, [addresses, selectedAddressId]);
 
-  const orderItems = useMemo(() => {
-    return Object.entries(cartItems)
-      .map(([itemId, quantity]) => {
-        const product =
-          products.find((item) => item.itemId === itemId) ||
-          productDetailsByItemId[itemId];
+  const resolvedCartItemCount = useMemo(
+    () =>
+      Object.keys(cartItems).filter(
+        (itemId) =>
+          products.some((item) => item.itemId === itemId) ||
+          productDetailsByItemId[itemId],
+      ).length,
+    [cartItems, productDetailsByItemId, products],
+  );
 
-        if (!product) {
-          return null;
-        }
-
-        return {
-          productId: product.itemId,
-          itemId: product.itemId,
-          name: product.name,
-          quantity,
-          price: product.price,
-          salePrice: product.price,
-          mrp: product.mrp,
-          discountPercent: product.discountPercent,
-          lineTotal: Number((product.price * quantity).toFixed(2)),
-          sku: product.sku,
-          partCategory: product.partCategory,
-          maker: product.maker,
-          lineConfiguration: product.lineConfiguration,
-        };
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
-  }, [cartItems, productDetailsByItemId, products]);
-
-  const payableTotal = Number(totalPrice.toFixed(2));
+  useEffect(() => {
+    if (user) {
+      void loadAddresses();
+    } else if (isAuthInitialized) {
+      resetAddresses();
+    }
+  }, [isAuthInitialized, loadAddresses, resetAddresses, user]);
 
   const handlePlaceOrder = async (
     event: ReactMouseEvent<HTMLButtonElement>,
   ) => {
     event.preventDefault();
 
+    if (!user) {
+      navigate("/login?returnTo=%2Fcart");
+      return;
+    }
     if (!selectedAddress) {
       setFormError(
         "Please select or add an address before placing your order.",
       );
       return;
     }
-
-    if (orderItems.length === 0) {
+    if (resolvedCartItemCount === 0) {
       setFormError("Your cart is empty. Add items before placing your order.");
       return;
     }
@@ -97,51 +93,27 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
     setFormError("");
     setIsSubmitting(true);
 
-    const sanitizedAddress = {
-      ...selectedAddress,
-      name: selectedAddress.name.trim(),
-      mobile: selectedAddress.mobile.trim(),
-      address1: selectedAddress.address1.trim(),
-      address2: selectedAddress.address2?.trim() || "",
-      city: selectedAddress.city.trim(),
-      state: selectedAddress.state.trim(),
-      pincode: selectedAddress.pincode.trim(),
-      landmark: selectedAddress.landmark?.trim() || "",
-    };
-
-    const itemCount = Object.values(cartItems).reduce(
-      (sum, quantity) => sum + Number(quantity),
-      0,
-    );
-
-    const orderSummary = {
-      totalAmount: payableTotal,
-      paymentMethod,
-      itemCount,
-      distinctItems: Object.keys(cartItems).length,
-      orderedAt: new Date().toISOString(),
-      address: `${sanitizedAddress.name}, ${sanitizedAddress.city}, ${sanitizedAddress.state}, ${sanitizedAddress.pincode}`,
-    };
-
-    const webhookPayload: OrderWebhookPayload = {
-      orderSummary,
-      customerAddress: sanitizedAddress,
-      items: orderItems,
-      webhookSource: "oxygenauto-web-store",
-    };
-
     try {
-      await sendOrderWebhook(webhookPayload);
+      const result = await placeOrder({
+        addressId: selectedAddress.id,
+        paymentMethod: "COD",
+        items: Object.entries(cartItems).map(([itemId, quantity]) => ({
+          itemId,
+          quantity,
+        })),
+      });
 
       clearCart();
       navigate("/order-success", {
-        state: { orderSummary },
+        state: {
+          orderSummary: result.orderSummary,
+          orderReference: result.orderReference,
+        },
       });
-    } catch {
-      clearCart();
-      navigate("/order-success", {
-        state: { orderSummary },
-      });
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Unable to place your order.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -153,31 +125,13 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
         <h2 className="text-xl font-medium text-slate-600">Payment Summary</h2>
 
         <p className="my-4 text-xs text-slate-400">Payment Method</p>
-
         <div className="flex items-center gap-2">
-          <input
-            id="COD"
-            type="radio"
-            checked={paymentMethod === "COD"}
-            onChange={() => setPaymentMethod("COD")}
-            className="accent-gray-500"
-          />
-          <label htmlFor="COD" className="cursor-pointer">
-            COD
-          </label>
+          <input id="COD" type="radio" checked readOnly />
+          <label htmlFor="COD">COD</label>
         </div>
-
         <div className="mt-1 flex items-center gap-2">
-          <input
-            id="ONLINE"
-            name="payment"
-            type="radio"
-            checked={paymentMethod === "ONLINE"}
-            onChange={() => setPaymentMethod("ONLINE")}
-            className="accent-gray-500"
-            disabled
-          />
-          <label htmlFor="ONLINE" className="cursor-pointer text-slate-400">
+          <input id="ONLINE" type="radio" disabled />
+          <label htmlFor="ONLINE" className="text-slate-400">
             Online payment
           </label>
         </div>
@@ -185,13 +139,20 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
         <div className="my-4 border-y border-slate-200 py-4 text-slate-400">
           <p>Address</p>
 
-          {selectedAddress ? (
+          {!user ? (
+            <button
+              type="button"
+              onClick={() => navigate("/login?returnTo=%2Fcart")}
+              className="mt-2 font-semibold text-[#0D542B]"
+            >
+              Sign in to save a delivery address
+            </button>
+          ) : selectedAddress ? (
             <div className="flex items-center gap-2">
               <p>
                 {selectedAddress.name}, {selectedAddress.city},{" "}
                 {selectedAddress.state}, {selectedAddress.pincode}
               </p>
-
               <SquarePenIcon
                 size={18}
                 className="cursor-pointer"
@@ -202,21 +163,17 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
             <div>
               {addresses.length > 0 && (
                 <select
+                  value={selectedAddressId || ""}
                   className="my-3 w-full rounded border border-slate-400 p-2 outline-none"
                   onChange={(event) => {
-                    if (!event.target.value) {
+                    if (event.target.value) {
+                      selectAddress(event.target.value);
+                    } else {
                       clearSelectedAddress();
-                      return;
-                    }
-
-                    const id = Number(event.target.value);
-                    if (!Number.isNaN(id)) {
-                      selectAddress(id);
                     }
                   }}
                 >
                   <option value="">Select Address</option>
-
                   {addresses.map((address) => (
                     <option key={address.id} value={address.id}>
                       {address.name}, {address.city}, {address.state},{" "}
@@ -236,6 +193,10 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
               </button>
             </div>
           )}
+
+          {addressesError && (
+            <p className="mt-2 text-xs text-red-600">{addressesError}</p>
+          )}
         </div>
 
         <div className="border-b border-slate-200 pb-4">
@@ -244,32 +205,13 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
               <p>Subtotal:</p>
               <p>Shipping:</p>
             </div>
-
             <div className="flex flex-col gap-1 text-right font-medium">
               <p>
                 {currency}
                 {formatMoney(totalPrice, true)}
               </p>
-
-              <p>Free</p>
+              <p>Extra</p>
             </div>
-          </div>
-
-          <div className="mt-3 flex justify-center gap-3">
-            <input
-              type="text"
-              placeholder="Coupons unavailable"
-              disabled
-              className="w-full cursor-not-allowed rounded-md border border-slate-200 bg-slate-100 px-3 py-2 text-slate-400 placeholder:text-slate-400"
-            />
-
-            <button
-              type="button"
-              disabled
-              className="cursor-not-allowed rounded-md bg-slate-300 px-4 py-2 font-medium text-white"
-            >
-              Apply
-            </button>
           </div>
         </div>
 
@@ -278,17 +220,21 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
             <span>Total</span>
             <span>
               {currency}
-              {formatMoney(payableTotal, true)}
+              {formatMoney(totalPrice, true)}
             </span>
           </div>
 
           <button
             type="button"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !isAuthInitialized}
             onClick={handlePlaceOrder}
             className="mt-5 w-full rounded-md bg-slate-800 px-4 py-3 font-medium text-white transition hover:bg-slate-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Placing Order..." : "Place Order"}
+            {isSubmitting
+              ? "Placing Order..."
+              : user
+                ? "Place Order"
+                : "Sign in to place order"}
           </button>
 
           {formError && (
@@ -299,7 +245,7 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
         </div>
       </div>
 
-      {showAddressModal && (
+      {showAddressModal && user && (
         <AddressModal setShowAddressModal={setShowAddressModal} />
       )}
     </>

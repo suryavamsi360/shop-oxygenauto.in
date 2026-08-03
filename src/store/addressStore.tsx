@@ -1,113 +1,116 @@
 import { create } from "zustand";
 
-export interface Address {
-  id: number;
-  name: string;
-  mobile: string;
-  address1: string;
-  address2?: string;
-  city: string;
-  state: string;
-  pincode: string;
-  landmark?: string;
-  isDefault: boolean;
-}
+import {
+  createAddress as createAddressRequest,
+  deleteAddress as deleteAddressRequest,
+  fetchAddresses,
+  updateAddress as updateAddressRequest,
+  type Address,
+  type AddressInput,
+} from "../services/addressService";
+
+export type { Address, AddressInput } from "../services/addressService";
 
 interface AddressState {
   addresses: Address[];
-  selectedAddressId: number | null;
-
-  addAddress: (address: Address) => void;
-  updateAddress: (address: Address) => void;
-  removeAddress: (id: number) => void;
-  selectAddress: (id: number) => void;
+  selectedAddressId: string | null;
+  isLoading: boolean;
+  error: string | null;
+  loadAddresses: () => Promise<void>;
+  addAddress: (address: AddressInput) => Promise<Address>;
+  updateAddress: (address: Address) => Promise<void>;
+  removeAddress: (id: string) => Promise<void>;
+  selectAddress: (id: string) => void;
   clearSelectedAddress: () => void;
+  reset: () => void;
 }
 
-const STORAGE_KEY = "oxygenauto-addresses";
-
-const getStoredAddressState = (): Pick<
-  AddressState,
-  "addresses" | "selectedAddressId"
-> => {
-  if (typeof window === "undefined")
-    return { addresses: [], selectedAddressId: null };
-
-  try {
-    const storedValue = window.localStorage.getItem(STORAGE_KEY);
-    if (!storedValue) return { addresses: [], selectedAddressId: null };
-
-    return JSON.parse(storedValue) as Pick<
-      AddressState,
-      "addresses" | "selectedAddressId"
-    >;
-  } catch {
-    return { addresses: [], selectedAddressId: null };
-  }
-};
-
-const persistAddressState = (
-  state: Pick<AddressState, "addresses" | "selectedAddressId">,
+const selectPreferredAddressId = (
+  addresses: Address[],
+  currentId: string | null,
 ) => {
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (currentId && addresses.some((address) => address.id === currentId)) {
+    return currentId;
   }
+  return addresses.find((address) => address.isDefault)?.id || null;
 };
 
-export const useAddressStore = create<AddressState>((set) => ({
-  addresses: getStoredAddressState().addresses,
-  selectedAddressId: getStoredAddressState().selectedAddressId,
+export const useAddressStore = create<AddressState>((set, get) => ({
+  addresses: [],
+  selectedAddressId: null,
+  isLoading: false,
+  error: null,
 
-  addAddress: (address) =>
-    set((state) => {
-      const nextState = {
-        addresses: [...state.addresses, address],
-        selectedAddressId: state.selectedAddressId,
-      };
-      persistAddressState(nextState);
-      return nextState;
-    }),
-
-  updateAddress: (address) =>
-    set((state) => {
-      const nextState = {
-        addresses: state.addresses.map((a) =>
-          a.id === address.id ? address : a,
+  loadAddresses: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const addresses = await fetchAddresses();
+      set((state) => ({
+        addresses,
+        selectedAddressId: selectPreferredAddressId(
+          addresses,
+          state.selectedAddressId,
         ),
-        selectedAddressId: state.selectedAddressId,
-      };
-      persistAddressState(nextState);
-      return nextState;
-    }),
+        isLoading: false,
+      }));
+    } catch (error) {
+      set({
+        isLoading: false,
+        error:
+          error instanceof Error ? error.message : "Unable to load addresses.",
+      });
+    }
+  },
 
-  removeAddress: (id) =>
-    set((state) => {
-      const nextState = {
-        addresses: state.addresses.filter((a) => a.id !== id),
-        selectedAddressId:
-          state.selectedAddressId === id ? null : state.selectedAddressId,
-      };
-      persistAddressState(nextState);
-      return nextState;
-    }),
+  addAddress: async (input) => {
+    const address = await createAddressRequest(input);
+    set((state) => ({
+      addresses: address.isDefault
+        ? [
+            ...state.addresses.map((item) => ({
+              ...item,
+              isDefault: false,
+            })),
+            address,
+          ]
+        : [...state.addresses, address],
+      selectedAddressId: address.id,
+      error: null,
+    }));
+    return address;
+  },
 
-  selectAddress: (id) =>
-    set((state) => {
-      const nextState = {
-        addresses: state.addresses,
-        selectedAddressId: id,
-      };
-      persistAddressState(nextState);
-      return nextState;
-    }),
+  updateAddress: async (input) => {
+    const address = await updateAddressRequest(input);
+    set((state) => ({
+      addresses: state.addresses.map((item) =>
+        item.id === address.id
+          ? address
+          : address.isDefault
+            ? { ...item, isDefault: false }
+            : item,
+      ),
+      error: null,
+    }));
+  },
 
-  clearSelectedAddress: () =>
-    set((state) => {
-      const nextState = {
-        addresses: state.addresses,
-        selectedAddressId: null,
-      };
-      persistAddressState(nextState);
-      return nextState;
+  removeAddress: async (id) => {
+    await deleteAddressRequest(id);
+    const addresses = get().addresses.filter((address) => address.id !== id);
+    set({
+      addresses,
+      selectedAddressId: selectPreferredAddressId(addresses, null),
+      error: null,
+    });
+  },
+
+  selectAddress: (id) => set({ selectedAddressId: id }),
+  clearSelectedAddress: () => set({ selectedAddressId: null }),
+  reset: () =>
+    set({
+      addresses: [],
+      selectedAddressId: null,
+      isLoading: false,
+      error: null,
     }),
 }));

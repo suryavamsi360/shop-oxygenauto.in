@@ -1,7 +1,7 @@
 import { XIcon } from "lucide-react";
 import { useState } from "react";
 
-import { useAddressStore, type Address } from "../../store/addressStore";
+import { useAddressStore, type AddressInput } from "../../store/addressStore";
 
 interface AddressModalProps {
   setShowAddressModal: React.Dispatch<React.SetStateAction<boolean>>;
@@ -11,8 +11,7 @@ const AddressModal = ({ setShowAddressModal }: AddressModalProps) => {
   const addAddress = useAddressStore((state) => state.addAddress);
   const [formError, setFormError] = useState("");
 
-  const [address, setAddress] = useState<Address>({
-    id: Date.now(),
+  const [address, setAddress] = useState<AddressInput>({
     name: "",
     mobile: "",
     address1: "",
@@ -47,7 +46,7 @@ const AddressModal = ({ setShowAddressModal }: AddressModalProps) => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const sanitizedAddress: Address = {
+    const sanitizedAddress: AddressInput = {
       ...address,
       name: address.name.trim(),
       mobile: address.mobile.trim(),
@@ -71,9 +70,14 @@ const AddressModal = ({ setShowAddressModal }: AddressModalProps) => {
 
     setFormError("");
 
-    addAddress(sanitizedAddress);
-
-    setShowAddressModal(false);
+    try {
+      await addAddress(sanitizedAddress);
+      setShowAddressModal(false);
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Unable to save address.",
+      );
+    }
   };
 
   return (

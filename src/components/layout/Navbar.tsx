@@ -1,10 +1,14 @@
-import { Search, ShoppingCart } from "lucide-react";
+import { LogIn, LogOut, Search, ShoppingCart } from "lucide-react";
 import type { FormEvent } from "react";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useCartStore } from "../../store/cartStore";
+import { useAuthStore } from "../../store/authStore";
 
 const Navbar = () => {
   const cartCount = useCartStore((state) => state.total);
+  const user = useAuthStore((state) => state.user);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const signOut = useAuthStore((state) => state.signOut);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const currentSearch = searchParams.get("search") || "";
@@ -68,7 +72,31 @@ const Navbar = () => {
           </button>
         </form>
 
-        <div className="ml-auto flex items-center md:ml-0">
+        <div className="ml-auto flex items-center gap-2 md:ml-0">
+          {isInitialized &&
+            (user ? (
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                title={user.email || "Signed in"}
+                className="flex min-h-11 items-center gap-2 rounded-md border border-[#C9D0C8] bg-white px-3 text-[#3E453F] transition hover:border-[#0D542B] hover:text-[#0D542B]"
+              >
+                <LogOut size={18} />
+                <span className="hidden max-w-28 truncate text-sm font-semibold lg:inline">
+                  Logout
+                </span>
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                className="flex min-h-11 items-center gap-2 rounded-md border border-[#C9D0C8] bg-white px-3 text-[#3E453F] transition hover:border-[#0D542B] hover:text-[#0D542B]"
+              >
+                <LogIn size={18} />
+                <span className="hidden text-sm font-semibold lg:inline">
+                  Login
+                </span>
+              </Link>
+            ))}
           <NavLink
             to="/cart"
             className={({ isActive }) =>

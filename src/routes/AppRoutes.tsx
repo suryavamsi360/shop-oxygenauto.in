@@ -7,6 +7,8 @@ import ProductDetails from "../pages/ProductDetails";
 import Cart from "../pages/Cart";
 import OrderSuccess from "../pages/OrderSuccess";
 import NotFound from "../pages/NotFound";
+import Login from "../pages/Login";
+import AuthCallback from "../pages/AuthCallback";
 
 export default function AppRoutes() {
   return (
@@ -19,6 +21,8 @@ export default function AppRoutes() {
           <Route path="/cart" element={<Cart />} />
           <Route path="/order-success" element={<OrderSuccess />} />
           <Route path="/orders" element={<OrderSuccess />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />
