@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   MoveLeft,
@@ -24,13 +25,6 @@ interface FilterState {
   partCategory: string;
 }
 
-const INITIAL_FILTERS: FilterState = {
-  maker: "",
-  lineConfiguration: "",
-  year: "",
-  partCategory: "",
-};
-
 const FILTER_KEYS: Array<keyof FilterState> = [
   "maker",
   "lineConfiguration",
@@ -48,19 +42,35 @@ const normalizeFilters = (filters: FilterState): FilterState => ({
 });
 
 const Shop = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<FilterState>(INITIAL_FILTERS);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageInput, setPageInput] = useState("1");
 
-  const search = searchParams.get("search");
+  const search = searchParams.get("search") || "";
+  const filters = useMemo<FilterState>(
+    () => ({
+      maker: searchParams.get("maker")?.trim() || "",
+      lineConfiguration: searchParams.get("lineConfiguration")?.trim() || "",
+      year: searchParams.get("year")?.trim() || "",
+      partCategory: searchParams.get("partCategory")?.trim() || "",
+    }),
+    [searchParams],
+  );
+  const currentPage = useMemo(() => {
+    const requestedPage = Number.parseInt(searchParams.get("page") || "1", 10);
+    return Number.isFinite(requestedPage) && requestedPage > 0
+      ? requestedPage
+      : 1;
+  }, [searchParams]);
+  const [pageInput, setPageInput] = useState(String(currentPage));
+  const [showRefreshConfirmation, setShowRefreshConfirmation] =
+    useState(false);
 
   const products = useProductStore((state) => state.products);
   const total = useProductStore((state) => state.total);
   const limit = useProductStore((state) => state.limit);
   const facets = useProductStore((state) => state.facets);
   const isLoading = useProductStore((state) => state.isLoading);
+  const isRefreshing = useProductStore((state) => state.isRefreshing);
   const error = useProductStore((state) => state.error);
   const loadProducts = useProductStore((state) => state.loadProducts);
 
@@ -89,82 +99,91 @@ const Shop = () => {
   }, [currentPage, filters, search]);
 
   useEffect(() => {
-    void loadProducts(requestQuery);
-  }, [loadProducts, requestQuery]);
+    let cancelled = false;
 
-  useEffect(() => {
-    setCurrentPage(1);
-    setPageInput("1");
-  }, [search]);
+    void loadProducts(requestQuery).then(() => {
+      if (cancelled) {
+        return;
+      }
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filters]);
+      const resolvedPage = useProductStore.getState().page;
+      if (resolvedPage === currentPage) {
+        return;
+      }
 
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
+      setSearchParams(
+        (currentParams) => {
+          const nextParams = new URLSearchParams(currentParams);
+          if (resolvedPage <= 1) {
+            nextParams.delete("page");
+          } else {
+            nextParams.set("page", String(resolvedPage));
+          }
+          return nextParams;
+        },
+        { replace: true },
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPage, loadProducts, requestQuery, setSearchParams]);
 
   useEffect(() => {
     setPageInput(String(currentPage));
   }, [currentPage]);
 
   useEffect(() => {
-    setFilters((currentFilters) => {
-      const sanitizedFilters: FilterState = { ...currentFilters };
+    if (!showRefreshConfirmation) {
+      return;
+    }
 
-      if (
-        sanitizedFilters.maker &&
-        !filterOptions.makers.includes(sanitizedFilters.maker)
-      ) {
-        sanitizedFilters.maker = "";
-      }
-      if (
-        sanitizedFilters.lineConfiguration &&
-        !filterOptions.lineConfigurations.includes(
-          sanitizedFilters.lineConfiguration,
-        )
-      ) {
-        sanitizedFilters.lineConfiguration = "";
-      }
-      if (
-        sanitizedFilters.year &&
-        !filterOptions.years.includes(sanitizedFilters.year)
-      ) {
-        sanitizedFilters.year = "";
-      }
-      if (
-        sanitizedFilters.partCategory &&
-        !filterOptions.partCategories.includes(sanitizedFilters.partCategory)
-      ) {
-        sanitizedFilters.partCategory = "";
-      }
+    const timeoutId = window.setTimeout(() => {
+      setShowRefreshConfirmation(false);
+    }, 3000);
 
-      const hasChanged = FILTER_KEYS.some(
-        (key) => currentFilters[key] !== sanitizedFilters[key],
-      );
-
-      return hasChanged ? sanitizedFilters : currentFilters;
-    });
-  }, [filterOptions]);
+    return () => window.clearTimeout(timeoutId);
+  }, [showRefreshConfirmation]);
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
-    setFilters((currentFilters) => ({
-      ...currentFilters,
-      [key]: value,
-    }));
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+      const normalizedValue = value.trim();
+
+      if (normalizedValue) {
+        nextParams.set(key, normalizedValue);
+      } else {
+        nextParams.delete(key);
+      }
+      nextParams.delete("page");
+
+      return nextParams;
+    });
   };
 
   const handleFilterReset = () => {
-    setFilters(INITIAL_FILTERS);
-    setCurrentPage(1);
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+      for (const key of FILTER_KEYS) {
+        nextParams.delete(key);
+      }
+      nextParams.delete("page");
+      return nextParams;
+    });
   };
 
   const handlePageChange = (page: number) => {
     const boundedPage = Math.min(Math.max(page, 1), totalPages);
-    setCurrentPage(boundedPage);
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+      if (boundedPage <= 1) {
+        nextParams.delete("page");
+      } else {
+        nextParams.set("page", String(boundedPage));
+      }
+      return nextParams;
+    });
   };
 
   const handlePageJump = () => {
@@ -177,8 +196,10 @@ const Shop = () => {
     handlePageChange(Math.trunc(requestedPage));
   };
 
-  const handleRefreshSearch = () => {
-    void loadProducts(requestQuery);
+  const handleRefreshSearch = async () => {
+    setShowRefreshConfirmation(false);
+    const refreshed = await loadProducts(requestQuery, { force: true });
+    setShowRefreshConfirmation(refreshed);
   };
 
   const handlePostRequirement = () => {
@@ -208,17 +229,32 @@ const Shop = () => {
             </p>
           </div>
 
-          <Button
-            type="button"
-            onClick={handleRefreshSearch}
-            disabled={isLoading}
-            variant="secondary"
-            size="sm"
-            title="Refresh catalogue results"
-          >
-            <RefreshCw size={16} />
-            Refresh inventory
-          </Button>
+          <div className="flex flex-col items-end gap-2">
+            <Button
+              type="button"
+              onClick={handleRefreshSearch}
+              disabled={isLoading || isRefreshing}
+              variant="secondary"
+              size="sm"
+              title="Refresh catalogue results"
+            >
+              <RefreshCw
+                size={16}
+                className={isRefreshing ? "animate-spin" : undefined}
+              />
+              Refresh inventory
+            </Button>
+            <p
+              role="status"
+              aria-live="polite"
+              className={`flex min-h-5 items-center gap-1.5 text-xs font-semibold text-[#0D542B] transition-opacity ${
+                showRefreshConfirmation ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              <CheckCircle2 size={14} />
+              Inventory refreshed
+            </p>
+          </div>
         </header>
 
         <ProductFilters

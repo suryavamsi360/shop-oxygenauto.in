@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Trash2Icon } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
+import Button from "../components/common/Button";
 import Counter from "../components/layout/Counter";
 import Loading from "../components/layout/Loading";
 import OrderSummary from "../components/layout/OrderSummary.tsx";
@@ -33,6 +34,7 @@ export default function Cart() {
 
   const cartItems = useCartStore((state) => state.cartItems);
   const deleteItem = useCartStore((state) => state.deleteItem);
+  const clearCart = useCartStore((state) => state.clearCart);
 
   const products = useProductStore((state) => state.products);
   const productDetailsByItemId = useProductStore(
@@ -50,6 +52,12 @@ export default function Cart() {
 
   const handlePostRequirement = () => {
     window.open(REQUIREMENT_CTA_URL, "_blank", "noopener,noreferrer");
+  };
+
+  const handleClearCart = () => {
+    if (window.confirm("Remove all items from your cart?")) {
+      clearCart();
+    }
   };
 
   useEffect(() => {
@@ -146,6 +154,18 @@ export default function Cart() {
           linkText="Add more"
         />
 
+        <div className="mb-4 flex justify-end">
+          <Button
+            type="button"
+            onClick={handleClearCart}
+            variant="danger"
+            size="sm"
+          >
+            <Trash2Icon size={15} />
+            Clear cart
+          </Button>
+        </div>
+
         <div className="flex items-start justify-between gap-5 max-lg:flex-col">
           <table className="w-full max-w-4xl table-auto text-slate-600">
             <thead>
@@ -161,18 +181,25 @@ export default function Cart() {
               {cartArray.map((item) => (
                 <tr key={item.id}>
                   <td className="my-4 flex gap-3">
-                    <div className="flex size-18 items-center justify-center rounded-md bg-slate-100">
+                    <Link
+                      to={`/products/${encodeURIComponent(item.itemId)}`}
+                      aria-label={`View ${item.partTitle || item.partName || item.name}`}
+                      className="flex size-18 shrink-0 items-center justify-center rounded-md bg-slate-100 transition hover:ring-2 hover:ring-[#0D542B]/30"
+                    >
                       <img
                         src={getImageSrc(item.images)}
                         alt={item.partTitle || item.partName || item.name}
                         className="h-14 w-auto"
                       />
-                    </div>
+                    </Link>
 
                     <div>
-                      <p className="max-sm:text-sm">
+                      <Link
+                        to={`/products/${encodeURIComponent(item.itemId)}`}
+                        className="max-sm:text-sm font-medium text-slate-700 transition hover:text-[#0D542B] hover:underline"
+                      >
                         {item.partTitle || item.partName || item.name}
-                      </p>
+                      </Link>
                       {item.partName &&
                         item.partName.toLowerCase() !==
                           (

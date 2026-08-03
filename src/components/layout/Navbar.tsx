@@ -57,7 +57,7 @@ const Navbar = () => {
             id="catalog-search"
             name="search"
             defaultValue={currentSearch}
-            placeholder="Search part title, name, SKU or item ID"
+            placeholder="Search maker or part name"
             className="h-11 w-full rounded-md border border-[#C9D0C8] bg-[#F8F9F6] pl-10 pr-24 text-sm text-[#202522] outline-none transition placeholder:text-[#8A918B] focus:border-[#0D542B] focus:bg-white"
           />
           <button

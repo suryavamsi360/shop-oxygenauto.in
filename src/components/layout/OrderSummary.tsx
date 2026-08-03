@@ -62,9 +62,14 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
           name: product.name,
           quantity,
           price: product.price,
+          salePrice: product.price,
           mrp: product.mrp,
           discountPercent: product.discountPercent,
           lineTotal: Number((product.price * quantity).toFixed(2)),
+          sku: product.sku,
+          partCategory: product.partCategory,
+          maker: product.maker,
+          lineConfiguration: product.lineConfiguration,
         };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);

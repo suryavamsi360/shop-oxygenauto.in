@@ -16,6 +16,7 @@ describe("productService", () => {
           products: [
             {
               itemId: "ITM-1",
+              sku: "SKU-1",
               partTitle: "Front Pulse Generator",
               itemName: "Sample Product",
               mrp: 1000,
@@ -25,6 +26,7 @@ describe("productService", () => {
               className: "Fuel System",
               groupName: "Engine",
               subClass: "Fuel Pump",
+              partCategory: "Fuel Pump",
               quantity: 5,
               availableStock: 3,
               compatibility: {
@@ -60,10 +62,12 @@ describe("productService", () => {
     expect(result.products[0]).toMatchObject({
       name: "Front Pulse Generator",
       partName: "Sample Product",
+      sku: "SKU-1",
       price: 900,
       stockQuantity: 5,
       category: "Engine",
       maker: "Honda",
+      partCategory: "Fuel Pump",
     });
     expect(result.total).toBe(1);
     expect(result.page).toBe(1);

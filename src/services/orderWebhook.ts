@@ -1,5 +1,18 @@
 const ORDER_WEBHOOK_URL = import.meta.env.VITE_ORDER_WEBHOOK_URL;
 
+interface OrderCustomerAddress {
+  id: number;
+  name: string;
+  mobile: string;
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  pincode: string;
+  landmark: string;
+  isDefault: boolean;
+}
+
 export interface OrderWebhookPayload {
   orderSummary: {
     totalAmount: number;
@@ -9,16 +22,21 @@ export interface OrderWebhookPayload {
     orderedAt: string;
     address: string;
   };
-  customerAddress: unknown;
+  customerAddress: OrderCustomerAddress;
   items: Array<{
     productId: string;
     itemId: string;
     name: string;
     quantity: number;
     price: number;
+    salePrice: number;
     mrp: number;
     discountPercent: number;
     lineTotal: number;
+    sku: string;
+    partCategory: string;
+    maker: string;
+    lineConfiguration: string;
   }>;
   webhookSource: string;
 }

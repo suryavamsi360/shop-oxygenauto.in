@@ -32,8 +32,8 @@ const OrderSuccess = () => {
         </h1>
 
         <p className="mt-3 text-slate-600">
-          Your order has been placed successfully. We will share shipping
-          details with you soon.
+          Your request has been placed successfully. We will share estimate and
+          quotation with you soon.
         </p>
 
         {orderSummary && (

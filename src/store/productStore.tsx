@@ -3,6 +3,7 @@ import {
   fetchProductDetail,
   fetchProducts,
   type ProductCatalogQuery,
+  type ProductCatalogResponse,
   type ProductFacets,
 } from "../services/productService";
 import type { ProductItem, ProductListItem } from "../types/product";
@@ -16,6 +17,44 @@ const EMPTY_FACETS: ProductFacets = {
   partCategory: [],
 };
 
+const CATALOG_CACHE_TTL_MS = 60_000;
+
+interface CachedCatalogResponse extends ProductCatalogResponse {
+  cachedAt: number;
+}
+
+interface LoadProductsOptions {
+  force?: boolean;
+}
+
+const catalogCache = new Map<string, CachedCatalogResponse>();
+const catalogRequests = new Map<string, Promise<ProductCatalogResponse>>();
+
+const normalizeCatalogQuery = (
+  query: ProductCatalogQuery,
+): Required<ProductCatalogQuery> => ({
+  page: query.page && query.page > 0 ? Math.trunc(query.page) : 1,
+  limit: query.limit && query.limit > 0 ? Math.trunc(query.limit) : 30,
+  search: query.search?.trim() || "",
+  maker: query.maker?.trim() || "",
+  lineConfiguration: query.lineConfiguration?.trim() || "",
+  year: query.year?.trim() || "",
+  partCategory: query.partCategory?.trim() || "",
+});
+
+const getCatalogQueryKey = (query: Required<ProductCatalogQuery>) =>
+  JSON.stringify(query);
+
+const toCatalogState = (response: ProductCatalogResponse) => ({
+  products: response.products,
+  facets: response.facets,
+  total: response.total,
+  page: response.page,
+  limit: response.limit,
+  totalPages: response.totalPages,
+  hasSearched: true,
+});
+
 interface ProductState {
   products: ProductListItem[];
   productDetailsByItemId: Record<string, ProductItem>;
@@ -26,13 +65,18 @@ interface ProductState {
   totalPages: number;
   hasSearched: boolean;
   isLoading: boolean;
+  isRefreshing: boolean;
   isDetailsLoading: boolean;
   error: string | null;
+  activeCatalogKey: string | null;
   setProducts: (products: ProductListItem[]) => void;
   clearProducts: () => void;
   getProductById: (id: string) => ProductListItem | undefined;
   getProductDetailByItemId: (itemId: string) => ProductItem | undefined;
-  loadProducts: (query?: ProductCatalogQuery) => Promise<void>;
+  loadProducts: (
+    query?: ProductCatalogQuery,
+    options?: LoadProductsOptions,
+  ) => Promise<boolean>;
   loadProductDetail: (itemId: string) => Promise<ProductItem>;
 }
 
@@ -46,15 +90,18 @@ export const useProductStore = create<ProductState>((set, get) => ({
   totalPages: 1,
   hasSearched: false,
   isLoading: false,
+  isRefreshing: false,
   isDetailsLoading: false,
   error: null,
+  activeCatalogKey: null,
 
   setProducts: (products) =>
     set({
       products,
     }),
 
-  clearProducts: () =>
+  clearProducts: () => {
+    catalogCache.clear();
     set({
       products: [],
       total: 0,
@@ -62,26 +109,76 @@ export const useProductStore = create<ProductState>((set, get) => ({
       totalPages: 1,
       facets: EMPTY_FACETS,
       hasSearched: false,
-    }),
+      isLoading: false,
+      isRefreshing: false,
+      activeCatalogKey: null,
+    });
+  },
 
   getProductById: (id) => get().products.find((product) => product.id === id),
   getProductDetailByItemId: (itemId) => get().productDetailsByItemId[itemId],
 
-  loadProducts: async (query = {}) => {
-    set({ isLoading: true, error: null });
-    try {
-      const response = await fetchProducts(query);
+  loadProducts: async (query = {}, options = {}) => {
+    const normalizedQuery = normalizeCatalogQuery(query);
+    const queryKey = getCatalogQueryKey(normalizedQuery);
+    const cached = catalogCache.get(queryKey);
+    const isCacheFresh =
+      cached && Date.now() - cached.cachedAt < CATALOG_CACHE_TTL_MS;
+
+    if (cached) {
       set({
-        products: response.products,
-        facets: response.facets,
-        total: response.total,
-        page: response.page,
-        limit: response.limit,
-        totalPages: response.totalPages,
-        hasSearched: true,
+        ...toCatalogState(cached),
+        activeCatalogKey: queryKey,
         isLoading: false,
+        isRefreshing: options.force === true || !isCacheFresh,
+        error: null,
       });
+    } else {
+      set({
+        activeCatalogKey: queryKey,
+        isLoading: true,
+        isRefreshing: false,
+        error: null,
+      });
+    }
+
+    if (isCacheFresh && !options.force) {
+      return true;
+    }
+
+    let request = catalogRequests.get(queryKey);
+    if (!request) {
+      request = fetchProducts(normalizedQuery);
+      catalogRequests.set(queryKey, request);
+    }
+
+    try {
+      const response = await request;
+      catalogCache.set(queryKey, {
+        ...response,
+        cachedAt: Date.now(),
+      });
+
+      if (get().activeCatalogKey !== queryKey) {
+        return true;
+      }
+
+      set({
+        ...toCatalogState(response),
+        isLoading: false,
+        isRefreshing: false,
+      });
+      return true;
     } catch (err) {
+      if (get().activeCatalogKey !== queryKey) {
+        return false;
+      }
+
+      if (cached) {
+        set({ isLoading: false, isRefreshing: false });
+        return false;
+      }
+
       set({
         error:
           err instanceof Error
@@ -89,13 +186,19 @@ export const useProductStore = create<ProductState>((set, get) => ({
             : "Something went wrong while loading products.",
         products: [],
         total: 0,
-        page: query.page && query.page > 0 ? query.page : 1,
-        limit: query.limit && query.limit > 0 ? query.limit : 12,
+        page: normalizedQuery.page,
+        limit: normalizedQuery.limit,
         totalPages: 1,
         facets: EMPTY_FACETS,
         hasSearched: true,
         isLoading: false,
+        isRefreshing: false,
       });
+      return false;
+    } finally {
+      if (catalogRequests.get(queryKey) === request) {
+        catalogRequests.delete(queryKey);
+      }
     }
   },
 

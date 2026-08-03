@@ -15,6 +15,7 @@ export interface CompatibilityItem {
 export interface ProductListItem {
   id: string;
   itemId: string;
+  sku: string;
   name: string;
   partTitle: string;
   partName: string;
@@ -32,6 +33,7 @@ export interface ProductListItem {
   fuel: string;
   category: string;
   subCategory: string;
+  partCategory: string;
 }
 
 export interface ProductItem extends ProductListItem {

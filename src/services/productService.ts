@@ -48,6 +48,7 @@ interface RawCompatibilityItem {
 interface RawProductListItem {
   itemId?: string;
   itemName?: string;
+  sku?: string;
   partTitle?: string;
   salePrice?: number | string;
   mrp?: number | string;
@@ -58,6 +59,7 @@ interface RawProductListItem {
   groupName?: string;
   className?: string;
   subClass?: string;
+  partCategory?: string;
   compatibility?: RawCompatibilityItem | null;
 }
 
@@ -119,6 +121,7 @@ const normalizeProduct = (product: RawProductListItem): ProductListItem => {
   return {
     id: toText(product.itemId),
     itemId: toText(product.itemId),
+    sku: toText(product.sku),
     name: partTitle || partName,
     partTitle,
     partName,
@@ -144,6 +147,11 @@ const normalizeProduct = (product: RawProductListItem): ProductListItem => {
     fuel: toText(compatibility?.fuelType),
     category: toText(product.groupName),
     subCategory: toText(product.subClass),
+    partCategory:
+      toText(product.partCategory) ||
+      toText(product.subClass) ||
+      toText(product.className) ||
+      toText(product.groupName),
   };
 };
 
