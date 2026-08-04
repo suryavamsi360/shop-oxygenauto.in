@@ -66,6 +66,7 @@ interface RawProductListItem {
 interface RawProductItem extends RawProductListItem {
   salesDescription?: string;
   partNumber?: string;
+  referenceId?: string;
   condition?: string;
   compatibilityList?: RawCompatibilityItem[];
   inventoryCreatedTime?: string;
@@ -171,6 +172,7 @@ const normalizeProductDetail = (product: RawProductItem): ProductItem => ({
   ...normalizeProduct(product),
   description: toText(product.salesDescription),
   partNumber: toText(product.partNumber),
+  referenceId: toText(product.referenceId),
   condition: toText(product.condition),
   compatibilityList: Array.isArray(product.compatibilityList)
     ? product.compatibilityList.map(normalizeCompatibility)

@@ -6,6 +6,7 @@ import Counter from "./Counter";
 import { useCartStore } from "../../store/cartStore";
 import type { ProductItem } from "../../types/product";
 import { formatMoney, getCurrencySymbol } from "../../utils/currency";
+import { maskPartNumber } from "../../utils/maskPartNumber";
 import { getProductImage } from "../../utils/productImage";
 
 interface ProductDetailsProps {
@@ -180,7 +181,11 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
             </h3>
             <p>
               <span className="font-medium text-slate-700">Part Number:</span>{" "}
-              {product.partNumber}
+              {maskPartNumber(product.partNumber)}
+            </p>
+            <p>
+              <span className="font-medium text-slate-700">Reference ID:</span>{" "}
+              {product.referenceId || "-"}
             </p>
             <p>
               <span className="font-medium text-slate-700">Stock:</span>{" "}

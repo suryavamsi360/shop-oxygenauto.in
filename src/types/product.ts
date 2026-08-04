@@ -39,6 +39,7 @@ export interface ProductListItem {
 export interface ProductItem extends ProductListItem {
   description: string;
   partNumber: string;
+  referenceId: string;
   condition: string;
   compatibilityList: CompatibilityItem[];
   inventoryCreatedTime: string;

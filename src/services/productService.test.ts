@@ -116,6 +116,7 @@ describe("productService", () => {
             itemName: "Sample Product",
             salesDescription: "Sample description",
             partNumber: "PN-1",
+            referenceId: "REF-123",
             sku: "SKU-1",
             quantity: 5,
             availableStock: 5,
@@ -146,5 +147,6 @@ describe("productService", () => {
 
     expect(detail.itemId).toBe("ITM-1");
     expect(detail.description).toBe("Sample description");
+    expect(detail.referenceId).toBe("REF-123");
   });
 });
