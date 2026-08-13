@@ -46,7 +46,7 @@ const Navbar = () => {
           className="relative ml-auto hidden max-w-2xl flex-1 md:block"
         >
           <label htmlFor="catalog-search" className="sr-only">
-            Search parts or item ID
+            Search Maker or Part Name
           </label>
           <Search
             aria-hidden="true"
@@ -57,7 +57,7 @@ const Navbar = () => {
             id="catalog-search"
             name="search"
             defaultValue={currentSearch}
-            placeholder="Search maker or part name"
+            placeholder="Search Maker or Part Name"
             className="h-11 w-full rounded-md border border-[#C9D0C8] bg-[#F8F9F6] pl-10 pr-24 text-sm text-[#202522] outline-none transition placeholder:text-[#8A918B] focus:border-[#0D542B] focus:bg-white"
           />
           <button
