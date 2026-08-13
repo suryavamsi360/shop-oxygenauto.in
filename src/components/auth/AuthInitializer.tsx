@@ -5,6 +5,7 @@ import {
   getAuthReturnTo,
   useAuthStore,
 } from "../../store/authStore";
+import CommerceStateInitializer from "./CommerceStateInitializer";
 
 const AuthInitializer = ({ children }: { children: ReactNode }) => {
   const initialize = useAuthStore((state) => state.initialize);
@@ -28,7 +29,12 @@ const AuthInitializer = ({ children }: { children: ReactNode }) => {
     window.location.replace(user ? returnTo : "/login");
   }, [isInitialized, user]);
 
-  return children;
+  return (
+    <>
+      <CommerceStateInitializer />
+      {children}
+    </>
+  );
 };
 
 export default AuthInitializer;

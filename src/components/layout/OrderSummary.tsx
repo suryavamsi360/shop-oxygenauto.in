@@ -15,6 +15,7 @@ import { useAuthStore } from "../../store/authStore";
 import { useCartStore } from "../../store/cartStore";
 import { useProductStore } from "../../store/productStore";
 import { formatMoney, getCurrencySymbol } from "../../utils/currency";
+import { updateCartStage } from "../../services/cartSyncService";
 
 interface OrderSummaryProps {
   totalPrice: number;
@@ -86,6 +87,12 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
   }, [isAuthInitialized, loadAddresses, resetAddresses, user]);
 
   useEffect(() => {
+    if (user && shippingItems.length > 0) {
+      void updateCartStage(selectedAddress ? "address" : "cart").catch(() => {});
+    }
+  }, [selectedAddress, shippingItems.length, user]);
+
+  useEffect(() => {
     let cancelled = false;
 
     if (!user || !selectedAddress || shippingItems.length === 0) {
@@ -108,6 +115,7 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
         .then((estimate) => {
           if (!cancelled) {
             setShippingAmount(estimate.amount);
+            void updateCartStage("shipping_quoted").catch(() => {});
           }
         })
         .catch((error) => {
@@ -154,6 +162,7 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
 
     setFormError("");
     setIsSubmitting(true);
+    void updateCartStage("placing_order").catch(() => {});
 
     try {
       const result = await placeOrder({

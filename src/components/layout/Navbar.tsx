@@ -1,12 +1,14 @@
-import { LogIn, Search, ShoppingCart } from "lucide-react";
+import { Heart, LogIn, Search, ShoppingCart } from "lucide-react";
 import type { FormEvent } from "react";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useCartStore } from "../../store/cartStore";
 import { useAuthStore } from "../../store/authStore";
 import ProfileMenu from "./ProfileMenu";
+import { useWishlistStore } from "../../store/wishlistStore";
 
 const Navbar = () => {
   const cartCount = useCartStore((state) => state.total);
+  const wishlistCount = useWishlistStore((state) => state.itemIds.length);
   const user = useAuthStore((state) => state.user);
   const isInitialized = useAuthStore((state) => state.isInitialized);
   const signOut = useAuthStore((state) => state.signOut);
@@ -83,6 +85,25 @@ const Navbar = () => {
                 </span>
               </Link>
             ))}
+          <NavLink
+            to="/wishlist"
+            aria-label="Wishlist"
+            title="Wishlist"
+            className={({ isActive }) =>
+              `relative flex size-11 items-center justify-center rounded-md border transition ${
+                isActive
+                  ? "border-[#0D542B] bg-[#E5F3EA] text-[#0D542B]"
+                  : "border-[#C9D0C8] bg-white text-[#3E453F] hover:border-[#0D542B] hover:text-[#0D542B]"
+              }`
+            }
+          >
+            <Heart size={20} />
+            {wishlistCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-full bg-[#0D542B] px-1 text-[10px] font-bold text-white">
+                {wishlistCount}
+              </span>
+            )}
+          </NavLink>
           <NavLink
             to="/cart"
             className={({ isActive }) =>

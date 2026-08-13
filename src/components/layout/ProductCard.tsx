@@ -6,6 +6,7 @@ import type { ProductListItem } from "../../types/product";
 import { formatMoney, getCurrencySymbol } from "../../utils/currency";
 import { getProductImage } from "../../utils/productImage";
 import Counter from "./Counter";
+import WishlistButton from "./WishlistButton";
 
 interface ProductCardProps {
   product: ProductListItem;
@@ -41,13 +42,18 @@ const ProductCard = ({ product }: ProductCardProps) => {
     <article className="group flex h-full min-w-0 flex-col overflow-hidden rounded-md border border-[#D7DCD5] bg-white shadow-[var(--shadow-sm)] transition duration-200 hover:-translate-y-0.5 hover:border-[#AEB8AF] hover:shadow-[var(--shadow-md)]">
       <Link to={`/products/${product.itemId}`} className="block">
         <div className="relative aspect-square overflow-hidden border-b border-[#E1E5DF] bg-[#F0F2ED]">
+          <WishlistButton
+            itemId={product.itemId}
+            itemName={primaryName}
+            className="absolute right-1 top-1 z-30 sm:right-2 sm:top-2"
+          />
           {hasValidDiscount && (
             <span className="absolute left-1 top-1 z-20 rounded-sm bg-[#00A63E] px-1 py-0.5 text-[8px] font-bold leading-none text-white shadow-sm sm:left-2 sm:top-2 sm:px-1.5 sm:py-1 sm:text-[9px]">
               {discountPercent}%<span className="hidden sm:inline"> off</span>
             </span>
           )}
           <span
-            className={`absolute right-1 top-1 z-20 size-2 rounded-full border border-white sm:right-2 sm:top-2 ${isOutOfStock ? "bg-[#B42318]" : "bg-[#0D542B]"}`}
+            className={`absolute right-2 top-12 z-20 size-2 rounded-full border border-white ${isOutOfStock ? "bg-[#B42318]" : "bg-[#0D542B]"}`}
             title={
               isOutOfStock
                 ? "Out of stock"

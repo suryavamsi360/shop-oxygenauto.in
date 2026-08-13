@@ -8,6 +8,7 @@ import type { ProductItem } from "../../types/product";
 import { formatMoney, getCurrencySymbol } from "../../utils/currency";
 import { maskPartNumber } from "../../utils/maskPartNumber";
 import { getProductImage } from "../../utils/productImage";
+import WishlistButton from "./WishlistButton";
 
 interface ProductDetailsProps {
   product: ProductItem;
@@ -73,7 +74,10 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
 
       {/* Details */}
       <div className="flex-1">
-        <h1 className="text-3xl font-semibold text-slate-800">{primaryName}</h1>
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="text-3xl font-semibold text-slate-800">{primaryName}</h1>
+          <WishlistButton itemId={itemId} itemName={primaryName} />
+        </div>
         {showPartName && (
           <p className="mt-1 text-sm text-slate-500">{partName}</p>
         )}

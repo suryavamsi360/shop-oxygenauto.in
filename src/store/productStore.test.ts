@@ -122,4 +122,17 @@ describe("productStore catalog cache", () => {
 
     expect(useProductStore.getState().products[0].itemId).toBe("SECOND");
   });
+
+  it("evicts an unavailable product and its cached catalog response", async () => {
+    fetchProductsMock.mockResolvedValue(createResponse("ITM-1"));
+    await useProductStore.getState().loadProducts({ page: 1 });
+
+    useProductStore.getState().invalidateProduct("ITM-1");
+    await useProductStore.getState().loadProducts({ page: 1 });
+
+    expect(useProductStore.getState().products).toEqual([
+      expect.objectContaining({ itemId: "ITM-1" }),
+    ]);
+    expect(fetchProductsMock).toHaveBeenCalledTimes(2);
+  });
 });

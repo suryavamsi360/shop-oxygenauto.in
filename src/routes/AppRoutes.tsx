@@ -9,6 +9,7 @@ import OrderSuccess from "../pages/OrderSuccess";
 import NotFound from "../pages/NotFound";
 import Login from "../pages/Login";
 import AuthCallback from "../pages/AuthCallback";
+import Wishlist from "../pages/Wishlist";
 
 export default function AppRoutes() {
   return (
@@ -19,6 +20,7 @@ export default function AppRoutes() {
           <Route path="/products" element={<Products />} />
           <Route path="/products/:itemId" element={<ProductDetails />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/order-success" element={<OrderSuccess />} />
           <Route path="/orders" element={<OrderSuccess />} />
           <Route path="/login" element={<Login />} />

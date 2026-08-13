@@ -8,6 +8,7 @@ interface CartState {
   removeFromCart: (itemId: string) => void;
   deleteItem: (itemId: string) => void;
   clearCart: () => void;
+  replaceCart: (cartItems: Record<string, number>) => void;
 }
 
 const STORAGE_KEY = "oxygenauto-cart";
@@ -101,6 +102,23 @@ export const useCartStore = create<CartState>((set) => ({
       const nextState = {
         total: 0,
         cartItems: {},
+      };
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+      }
+
+      return nextState;
+    }),
+
+  replaceCart: (cartItems) =>
+    set(() => {
+      const nextState = {
+        total: Object.values(cartItems).reduce(
+          (total, quantity) => total + quantity,
+          0,
+        ),
+        cartItems,
       };
 
       if (typeof window !== "undefined") {

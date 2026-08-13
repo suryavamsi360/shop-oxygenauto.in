@@ -67,6 +67,7 @@ interface ProductState {
   error: string | null;
   activeCatalogKey: string | null;
   clearProducts: () => void;
+  invalidateProduct: (itemId: string) => void;
   loadProducts: (
     query?: ProductCatalogQuery,
     options?: LoadProductsOptions,
@@ -97,6 +98,27 @@ export const useProductStore = create<ProductState>((set, get) => ({
       isLoading: false,
       isRefreshing: false,
       activeCatalogKey: null,
+    });
+  },
+
+  invalidateProduct: (itemId) => {
+    const normalizedItemId = itemId.trim();
+    if (!normalizedItemId) return;
+    catalogCache.clear();
+    set((state) => {
+      const productDetailsByItemId = { ...state.productDetailsByItemId };
+      delete productDetailsByItemId[normalizedItemId];
+      const products = state.products.filter(
+        (product) => product.itemId !== normalizedItemId,
+      );
+      return {
+        products,
+        productDetailsByItemId,
+        total:
+          products.length === state.products.length
+            ? state.total
+            : Math.max(0, state.total - 1),
+      };
     });
   },
 
