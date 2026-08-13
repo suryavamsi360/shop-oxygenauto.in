@@ -108,11 +108,11 @@ const Product = () => {
         {/* Product Details */}
         {product && <ProductDetails key={product.itemId} product={product} />}
 
-        {/* Similar Products */}
-        {product && <SimilarProducts key={product.itemId} product={product} />}
-
         {/* Description */}
         {product && <ProductDescription product={product} />}
+
+        {/* Similar Products */}
+        {product && <SimilarProducts key={product.itemId} product={product} />}
 
         {/* Testing Data */}
         {product && <ProductTestingInfo product={product} />}

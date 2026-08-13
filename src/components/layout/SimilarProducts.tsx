@@ -114,6 +114,13 @@ const SimilarProducts = ({ product }: SimilarProductsProps) => {
     return null;
   }
 
+  const appliedFilters = [
+    { label: "Maker", value: state.query.maker },
+    { label: "Model", value: state.query.lineConfiguration },
+    { label: "Year", value: state.query.year },
+    { label: "Category", value: state.query.partCategory },
+  ].filter((filter) => filter.value?.trim());
+
   return (
     <section
       className="mt-14 border-y border-[#D7DCD5] py-8"
@@ -130,6 +137,24 @@ const SimilarProducts = ({ product }: SimilarProductsProps) => {
           <p className="mt-1 text-sm text-[#68706A]">
             Matching this vehicle fitment and part category
           </p>
+          {!state.isLoading && appliedFilters.length > 0 && (
+            <div
+              className="mt-3 flex flex-wrap gap-2"
+              aria-label="Applied similar product filters"
+            >
+              {appliedFilters.map((filter) => (
+                <span
+                  key={filter.label}
+                  className="rounded-md border border-[#C9D0C8] bg-[#F4F5F1] px-2 py-1 text-xs text-[#59615B]"
+                >
+                  <span className="font-semibold text-[#202522]">
+                    {filter.label}:
+                  </span>{" "}
+                  {filter.value}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {!state.isLoading && (
