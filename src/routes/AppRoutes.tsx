@@ -10,6 +10,7 @@ import NotFound from "../pages/NotFound";
 import Login from "../pages/Login";
 import AuthCallback from "../pages/AuthCallback";
 import Wishlist from "../pages/Wishlist";
+import AdminCommerce from "../pages/AdminCommerce";
 
 export default function AppRoutes() {
   return (
@@ -25,6 +26,7 @@ export default function AppRoutes() {
           <Route path="/orders" element={<OrderSuccess />} />
           <Route path="/login" element={<Login />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/admin" element={<AdminCommerce />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

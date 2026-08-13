@@ -7,9 +7,11 @@ import {
   Pencil,
   Phone,
   Plus,
+  ShieldCheck,
   UserRound,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 
 import AddressModal from "./AddressModal";
 import { useAddressStore, type Address } from "../../store/addressStore";
@@ -30,6 +32,8 @@ const ProfileMenu = ({ user, onSignOut }: ProfileMenuProps) => {
   const [addressToEdit, setAddressToEdit] = useState<Address | null>(null);
   const metadataPhone = String(user.user_metadata?.phone || "").trim();
   const phone = user.phone || (metadataPhone ? `+91${metadataPhone}` : "");
+  const isAdmin =
+    String(user.app_metadata?.role || "").toLowerCase() === "admin";
 
   useEffect(() => {
     if (isOpen) void loadAddresses();
@@ -145,6 +149,17 @@ const ProfileMenu = ({ user, onSignOut }: ProfileMenuProps) => {
 
               {error && <p className="mt-2 text-xs text-[#B42318]">{error}</p>}
             </div>
+
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setIsOpen(false)}
+                className="mb-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#B8D8C2] text-sm font-semibold text-[#0D542B] transition hover:bg-[#E5F3EA]"
+              >
+                <ShieldCheck size={17} />
+                Admin panel
+              </Link>
+            )}
 
             <button
               type="button"
