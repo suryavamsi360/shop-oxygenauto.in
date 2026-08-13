@@ -1,4 +1,6 @@
 import {
+  ChevronLeft,
+  ChevronRight,
   CircleAlert,
   Heart,
   LoaderCircle,
@@ -22,6 +24,7 @@ import { useAuthStore } from "../store/authStore";
 import { formatMoney, getCurrencySymbol } from "../utils/currency";
 
 const TABS = ["orders", "carts", "wishlists", "customers", "admins"] as const;
+const ROWS_PER_PAGE = 15;
 const ORDER_STATUSES: OrderStatus[] = [
   "pending",
   "accepted",
@@ -71,6 +74,119 @@ const ProductLink = ({ itemId, name }: { itemId: string; name: string }) => (
   </a>
 );
 
+const FilterSelect = ({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) => (
+  <label className="flex min-w-36 flex-col gap-1 text-xs font-semibold text-[#68706A]">
+    {label}
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className="h-9 rounded-md border border-[#C9D0C8] bg-white px-2 text-sm font-normal capitalize text-[#202522] outline-none focus:border-[#0D542B]"
+    >
+      <option value="">All</option>
+      {options.map((option) => (
+        <option key={option} value={option}>
+          {option.replaceAll("_", " ")}
+        </option>
+      ))}
+    </select>
+  </label>
+);
+
+const CollapsibleItemList = ({
+  listId,
+  items,
+}: {
+  listId: string;
+  items: Array<{ itemId: string; name: string; quantity?: number }>;
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const canExpand = items.length > 4;
+
+  return (
+    <div>
+      <div
+        id={listId}
+        className={`space-y-1 ${canExpand && !isExpanded ? "max-h-24 overflow-hidden" : ""}`}
+      >
+        {items.map((item) => (
+          <p key={item.itemId}>
+            {item.quantity ? `${item.quantity}x ` : ""}
+            <ProductLink itemId={item.itemId} name={item.name} />
+          </p>
+        ))}
+      </div>
+      {canExpand && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded((expanded) => !expanded)}
+          aria-expanded={isExpanded}
+          aria-controls={listId}
+          className="mt-2 text-xs font-semibold text-[#187A45] underline underline-offset-2"
+        >
+          {isExpanded ? "Show less" : `Show ${items.length - 4} more`}
+        </button>
+      )}
+    </div>
+  );
+};
+
+const Pagination = ({
+  page,
+  totalRows,
+  onPageChange,
+}: {
+  page: number;
+  totalRows: number;
+  onPageChange: (page: number) => void;
+}) => {
+  const totalPages = Math.max(1, Math.ceil(totalRows / ROWS_PER_PAGE));
+  const firstRow = totalRows === 0 ? 0 : (page - 1) * ROWS_PER_PAGE + 1;
+  const lastRow = Math.min(page * ROWS_PER_PAGE, totalRows);
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#D7DCD5] px-3 py-3 text-xs text-[#68706A]">
+      <span>
+        Showing {firstRow}-{lastRow} of {totalRows}
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 1}
+          title="Previous page"
+          aria-label="Previous page"
+          className="flex size-8 items-center justify-center rounded-md border border-[#C9D0C8] text-[#0D542B] hover:bg-[#E5F3EA] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <span className="min-w-20 text-center font-semibold text-[#202522]">
+          Page {page} of {totalPages}
+        </span>
+        <button
+          type="button"
+          onClick={() => onPageChange(page + 1)}
+          disabled={page >= totalPages}
+          title="Next page"
+          aria-label="Next page"
+          className="flex size-8 items-center justify-center rounded-md border border-[#C9D0C8] text-[#0D542B] hover:bg-[#E5F3EA] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const AdminCommerce = () => {
   const navigate = useNavigate();
   const currency = getCurrencySymbol();
@@ -85,6 +201,22 @@ const AdminCommerce = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [updatingOrder, setUpdatingOrder] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [columnFilters, setColumnFilters] = useState({
+    orderStatus: "",
+    webhookStatus: "",
+    cartIdentity: "",
+    cartStage: "",
+    cartStatus: "",
+    location: "",
+    customerEmail: "",
+    customerPhone: "",
+    hideWithoutContact: true,
+  });
+  const setColumnFilter = <Name extends keyof typeof columnFilters>(
+    name: Name,
+    value: (typeof columnFilters)[Name],
+  ) => setColumnFilters((current) => ({ ...current, [name]: value }));
 
   const loadDashboard = async (quiet = false) => {
     if (!quiet) setIsLoading(true);
@@ -120,28 +252,57 @@ const AdminCommerce = () => {
   const filteredOrders = useMemo(
     () =>
       descendingByDate(
-        (dashboard?.orders || []).filter((order) =>
-          [order.orderReference, order.customerEmail, order.status]
-            .join(" ")
-            .toLowerCase()
-            .includes(normalizedSearch),
+        (dashboard?.orders || []).filter(
+          (order) =>
+            [order.orderReference, order.customerEmail, order.status]
+              .join(" ")
+              .toLowerCase()
+              .includes(normalizedSearch) &&
+            (!columnFilters.orderStatus ||
+              order.status === columnFilters.orderStatus) &&
+            (!columnFilters.webhookStatus ||
+              order.webhookStatus === columnFilters.webhookStatus),
         ),
         (order) => order.updatedAt,
       ),
-    [dashboard?.orders, normalizedSearch],
+    [
+      columnFilters.orderStatus,
+      columnFilters.webhookStatus,
+      dashboard?.orders,
+      normalizedSearch,
+    ],
   );
   const filteredCarts = useMemo(
     () =>
       descendingByDate(
-        (dashboard?.carts || []).filter((cart) =>
-          [cart.id, cart.customerEmail, cart.identityType, cart.status]
-            .join(" ")
-            .toLowerCase()
-            .includes(normalizedSearch),
+        (dashboard?.carts || []).filter(
+          (cart) =>
+            [
+              cart.id,
+              cart.customerEmail,
+              cart.customerPhone,
+              cart.identityType,
+              cart.status,
+            ]
+              .join(" ")
+              .toLowerCase()
+              .includes(normalizedSearch) &&
+            (!columnFilters.cartIdentity ||
+              cart.identityType === columnFilters.cartIdentity) &&
+            (!columnFilters.cartStage ||
+              cart.checkoutStage === columnFilters.cartStage) &&
+            (!columnFilters.cartStatus ||
+              cart.status === columnFilters.cartStatus),
         ),
         (cart) => cart.lastActivityAt,
       ),
-    [dashboard?.carts, normalizedSearch],
+    [
+      columnFilters.cartIdentity,
+      columnFilters.cartStage,
+      columnFilters.cartStatus,
+      dashboard?.carts,
+      normalizedSearch,
+    ],
   );
   const filteredWishlists = useMemo(
     () =>
@@ -163,15 +324,41 @@ const AdminCommerce = () => {
   const filteredCustomers = useMemo(
     () =>
       descendingByDate(
-        (dashboard?.customers || []).filter((customer) =>
-          [customer.email, customer.phone, customer.name, customer.city]
-            .join(" ")
-            .toLowerCase()
-            .includes(normalizedSearch),
+        (dashboard?.customers || []).filter(
+          (customer) =>
+            [
+              customer.email,
+              customer.phone,
+              customer.name,
+              customer.city,
+              customer.role,
+            ]
+              .join(" ")
+              .toLowerCase()
+              .includes(normalizedSearch) &&
+            [customer.city, customer.state]
+              .join(" ")
+              .toLowerCase()
+              .includes(columnFilters.location.toLowerCase()) &&
+            customer.email
+              .toLowerCase()
+              .includes(columnFilters.customerEmail.trim().toLowerCase()) &&
+            customer.phone
+              .toLowerCase()
+              .includes(columnFilters.customerPhone.trim().toLowerCase()) &&
+            (!columnFilters.hideWithoutContact ||
+              Boolean(customer.email.trim() || customer.phone.trim())),
         ),
         (customer) => customer.lastUpdatedAt,
       ),
-    [dashboard?.customers, normalizedSearch],
+    [
+      columnFilters.location,
+      columnFilters.customerEmail,
+      columnFilters.customerPhone,
+      columnFilters.hideWithoutContact,
+      dashboard?.customers,
+      normalizedSearch,
+    ],
   );
   const filteredAdmins = useMemo(
     () =>
@@ -186,6 +373,45 @@ const AdminCommerce = () => {
       ),
     [dashboard?.admins, normalizedSearch],
   );
+  const filteredRowsByTab = {
+    orders: filteredOrders,
+    carts: filteredCarts,
+    wishlists: filteredWishlists,
+    customers: filteredCustomers,
+    admins: filteredAdmins,
+  };
+  const activeRowCount = filteredRowsByTab[activeTab].length;
+  const totalPages = Math.max(1, Math.ceil(activeRowCount / ROWS_PER_PAGE));
+  const visiblePage = Math.min(currentPage, totalPages);
+  const pageStart = (visiblePage - 1) * ROWS_PER_PAGE;
+  const paginatedOrders = filteredOrders.slice(
+    pageStart,
+    pageStart + ROWS_PER_PAGE,
+  );
+  const paginatedCarts = filteredCarts.slice(
+    pageStart,
+    pageStart + ROWS_PER_PAGE,
+  );
+  const paginatedWishlists = filteredWishlists.slice(
+    pageStart,
+    pageStart + ROWS_PER_PAGE,
+  );
+  const paginatedCustomers = filteredCustomers.slice(
+    pageStart,
+    pageStart + ROWS_PER_PAGE,
+  );
+  const paginatedAdmins = filteredAdmins.slice(
+    pageStart,
+    pageStart + ROWS_PER_PAGE,
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, columnFilters, search]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
   const selectedCustomer = [
     ...(dashboard?.customers || []),
     ...(dashboard?.admins || []),
@@ -353,6 +579,127 @@ const AdminCommerce = () => {
         />
       </div>
 
+      {(activeTab === "orders" ||
+        activeTab === "carts" ||
+        activeTab === "customers") && (
+        <div className="mt-3 flex flex-wrap items-end gap-3 border-b border-[#E1E5DF] pb-3">
+          {activeTab === "orders" && (
+            <>
+              <FilterSelect
+                label="Status"
+                value={columnFilters.orderStatus}
+                options={[...ORDER_STATUSES]}
+                onChange={(value) => setColumnFilter("orderStatus", value)}
+              />
+              <FilterSelect
+                label="Webhook"
+                value={columnFilters.webhookStatus}
+                options={["pending", "delivered", "failed"]}
+                onChange={(value) => setColumnFilter("webhookStatus", value)}
+              />
+            </>
+          )}
+          {activeTab === "carts" && (
+            <>
+              <FilterSelect
+                label="Identity"
+                value={columnFilters.cartIdentity}
+                options={["admin", "customer", "guest"]}
+                onChange={(value) => setColumnFilter("cartIdentity", value)}
+              />
+              <FilterSelect
+                label="Stage"
+                value={columnFilters.cartStage}
+                options={[
+                  "cart",
+                  "address",
+                  "shipping_quoted",
+                  "placing_order",
+                ]}
+                onChange={(value) => setColumnFilter("cartStage", value)}
+              />
+              <FilterSelect
+                label="Status"
+                value={columnFilters.cartStatus}
+                options={["active", "abandoned", "converted", "cleared"]}
+                onChange={(value) => setColumnFilter("cartStatus", value)}
+              />
+            </>
+          )}
+          {activeTab === "customers" && (
+            <>
+              <label className="flex min-w-52 flex-col gap-1 text-xs font-semibold text-[#68706A]">
+                Email
+                <input
+                  type="email"
+                  value={columnFilters.customerEmail}
+                  onChange={(event) =>
+                    setColumnFilter("customerEmail", event.target.value)
+                  }
+                  placeholder="Filter by email"
+                  className="h-9 rounded-md border border-[#C9D0C8] bg-white px-2 text-sm font-normal text-[#202522] outline-none focus:border-[#0D542B]"
+                />
+              </label>
+              <label className="flex min-w-44 flex-col gap-1 text-xs font-semibold text-[#68706A]">
+                Phone
+                <input
+                  type="tel"
+                  value={columnFilters.customerPhone}
+                  onChange={(event) =>
+                    setColumnFilter("customerPhone", event.target.value)
+                  }
+                  placeholder="Filter by phone"
+                  className="h-9 rounded-md border border-[#C9D0C8] bg-white px-2 text-sm font-normal text-[#202522] outline-none focus:border-[#0D542B]"
+                />
+              </label>
+              <label className="flex min-w-52 flex-col gap-1 text-xs font-semibold text-[#68706A]">
+                Location
+                <input
+                  value={columnFilters.location}
+                  onChange={(event) =>
+                    setColumnFilter("location", event.target.value)
+                  }
+                  placeholder="City or state"
+                  className="h-9 rounded-md border border-[#C9D0C8] bg-white px-2 text-sm font-normal text-[#202522] outline-none focus:border-[#0D542B]"
+                />
+              </label>
+              <label className="flex min-h-9 cursor-pointer items-center gap-2 rounded-md border border-[#C9D0C8] bg-white px-3 text-xs font-semibold text-[#202522]">
+                <input
+                  type="checkbox"
+                  checked={columnFilters.hideWithoutContact}
+                  onChange={(event) =>
+                    setColumnFilter("hideWithoutContact", event.target.checked)
+                  }
+                  className="size-4 accent-[#187A45]"
+                />
+                Hide customers without email and phone
+              </label>
+            </>
+          )}
+          {Object.values(columnFilters).some(Boolean) && (
+            <button
+              type="button"
+              onClick={() =>
+                setColumnFilters({
+                  orderStatus: "",
+                  webhookStatus: "",
+                  cartIdentity: "",
+                  cartStage: "",
+                  cartStatus: "",
+                  location: "",
+                  customerEmail: "",
+                  customerPhone: "",
+                  hideWithoutContact: true,
+                })
+              }
+              className="min-h-9 px-2 text-xs font-semibold text-[#B42318] underline underline-offset-2"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
+
       {error && (
         <p
           role="alert"
@@ -377,7 +724,7 @@ const AdminCommerce = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((order) => (
+              {paginatedOrders.map((order) => (
                 <tr key={order.id} className="border-t border-[#E1E5DF]">
                   <td className="p-3 font-mono text-xs">
                     {order.orderReference}
@@ -437,10 +784,12 @@ const AdminCommerce = () => {
         )}
 
         {activeTab === "carts" && (
-          <table className="w-full min-w-[1000px] text-left text-sm">
+          <table className="w-full min-w-[1200px] text-left text-sm">
             <thead className="bg-[#F5F7F3] text-xs uppercase text-[#68706A]">
               <tr>
                 <th className="p-3">Identity</th>
+                <th className="p-3">Email</th>
+                <th className="p-3">Phone</th>
                 <th className="p-3">Items ({tabCounts.carts})</th>
                 <th className="p-3">Value</th>
                 <th className="p-3">Stage</th>
@@ -449,41 +798,36 @@ const AdminCommerce = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredCarts.map((cart) => (
+              {paginatedCarts.map((cart) => (
                 <tr
                   key={cart.id}
                   className="border-t border-[#E1E5DF] align-top"
                 >
+                  <td className="p-3 text-xs font-bold uppercase text-[#0D542B]">
+                    {cart.identityType}
+                  </td>
                   <td className="p-3">
-                    <span className="text-xs font-bold uppercase text-[#0D542B]">
-                      {cart.identityType}
-                    </span>
-                    <span className="mx-1">-</span>
-                    {cart.userId ? (
+                    {cart.identityType !== "guest" && cart.userId ? (
                       <button
                         type="button"
                         onClick={() => openCustomer(cart.userId)}
-                        className="mt-1 text-xs text-[#0D542B] underline underline-offset-2"
+                        className="block text-left text-xs text-[#0D542B] underline underline-offset-2"
                       >
-                        {cart.customerEmail || "Customer"}
+                        {cart.customerEmail || "-"}
                       </button>
                     ) : (
-                      <p className="mt-1 text-xs">{cart.id.slice(0, 12)}</p>
+                      <span className="block text-xs text-[#68706A]">-</span>
                     )}
+                  </td>
+                  <td className="p-3 text-xs text-[#68706A]">
+                    {cart.customerPhone || "-"}
                   </td>
                   <td className="max-w-md p-3">
                     {cart.items.length ? (
-                      <div className="space-y-1">
-                        {cart.items.map((item) => (
-                          <p key={item.itemId}>
-                            {item.quantity}x{" "}
-                            <ProductLink
-                              itemId={item.itemId}
-                              name={item.name}
-                            />
-                          </p>
-                        ))}
-                      </div>
+                      <CollapsibleItemList
+                        listId={`cart-items-${cart.id}`}
+                        items={cart.items}
+                      />
                     ) : (
                       "Empty"
                     )}
@@ -513,41 +857,50 @@ const AdminCommerce = () => {
         )}
 
         {activeTab === "wishlists" && (
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-[950px] text-left text-sm">
             <thead className="bg-[#F5F7F3] text-xs uppercase text-[#68706A]">
               <tr>
-                <th className="p-3">Customer</th>
+                <th className="p-3">Identity</th>
+                <th className="p-3">Email</th>
+                <th className="p-3">Phone</th>
                 <th className="p-3">Saved items ({tabCounts.wishlists})</th>
                 <th className="p-3">Count</th>
                 <th className="p-3">Updated</th>
               </tr>
             </thead>
             <tbody>
-              {filteredWishlists.map((wishlist) => (
+              {paginatedWishlists.map((wishlist) => (
                 <tr
                   key={wishlist.userId}
                   className="border-t border-[#E1E5DF] align-top"
                 >
+                  <td className="p-3 text-xs font-bold uppercase text-[#0D542B]">
+                    {wishlist.identityType}
+                  </td>
                   <td className="p-3">
-                    <button
-                      type="button"
-                      onClick={() => openCustomer(wishlist.userId)}
-                      className="text-[#0D542B] underline underline-offset-2"
-                    >
-                      {wishlist.customerEmail || wishlist.userId}
-                    </button>
+                    {wishlist.identityType === "guest" ? (
+                      <span className="block text-xs text-[#68706A]">-</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => openCustomer(wishlist.userId)}
+                        className="block text-left text-xs text-[#0D542B] underline underline-offset-2"
+                      >
+                        {wishlist.customerEmail || "-"}
+                      </button>
+                    )}
+                  </td>
+                  <td className="p-3 text-xs text-[#68706A]">
+                    {wishlist.customerPhone || "-"}
                   </td>
                   <td className="max-w-2xl p-3">
-                    <div className="space-y-1">
-                      {wishlist.items.map((item) => (
-                        <p key={item.itemId}>
-                          <ProductLink
-                            itemId={item.itemId}
-                            name={item.itemName}
-                          />
-                        </p>
-                      ))}
-                    </div>
+                    <CollapsibleItemList
+                      listId={`wishlist-items-${wishlist.userId}`}
+                      items={wishlist.items.map((item) => ({
+                        itemId: item.itemId,
+                        name: item.itemName,
+                      }))}
+                    />
                   </td>
                   <td className="p-3">{wishlist.itemCount}</td>
                   <td className="p-3 text-xs">
@@ -560,10 +913,11 @@ const AdminCommerce = () => {
         )}
 
         {activeTab === "customers" && (
-          <table className="w-full min-w-[900px] text-left text-sm">
+          <table className="w-full min-w-[1050px] text-left text-sm">
             <thead className="bg-[#F5F7F3] text-xs uppercase text-[#68706A]">
               <tr>
                 <th className="p-3">Customer</th>
+                <th className="p-3">Email</th>
                 <th className="p-3">Phone</th>
                 <th className="p-3">Location</th>
                 <th className="p-3">Wishlist</th>
@@ -572,7 +926,7 @@ const AdminCommerce = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredCustomers.map((customer) => (
+              {paginatedCustomers.map((customer) => (
                 <tr key={customer.id} className="border-t border-[#E1E5DF]">
                   <td className="p-3">
                     <button
@@ -581,13 +935,12 @@ const AdminCommerce = () => {
                       className="text-left"
                     >
                       <span className="block font-medium text-[#0D542B] underline underline-offset-2">
-                        {customer.name || "Customer"}
-                      </span>
-                      <span className="block text-xs text-[#68706A]">
-                        {customer.email}
+                        {customer.name ||
+                          (customer.role === "guest" ? "Guest" : "Customer")}
                       </span>
                     </button>
                   </td>
+                  <td className="p-3 text-xs">{customer.email || "-"}</td>
                   <td className="p-3">{customer.phone || "-"}</td>
                   <td className="p-3">
                     {[customer.city, customer.state]
@@ -611,7 +964,7 @@ const AdminCommerce = () => {
           <table className="w-full min-w-[1050px] text-left text-sm">
             <thead className="bg-[#F5F7F3] text-xs uppercase text-[#68706A]">
               <tr>
-                <th className="p-3">Admin</th>
+                <th className="p-3">Email</th>
                 <th className="p-3">Phone</th>
                 <th className="p-3">Location</th>
                 <th className="p-3">Carts</th>
@@ -622,20 +975,15 @@ const AdminCommerce = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredAdmins.map((admin) => (
+              {paginatedAdmins.map((admin) => (
                 <tr key={admin.id} className="border-t border-[#E1E5DF]">
                   <td className="p-3">
                     <button
                       type="button"
                       onClick={() => openCustomer(admin.id)}
-                      className="text-left"
+                      className="text-left text-xs text-[#0D542B] underline underline-offset-2"
                     >
-                      <span className="block font-medium text-[#0D542B] underline underline-offset-2">
-                        {admin.name || "Administrator"}
-                      </span>
-                      <span className="block text-xs text-[#68706A]">
-                        {admin.email}
-                      </span>
+                      {admin.email || "-"}
                     </button>
                   </td>
                   <td className="p-3">{admin.phone || "-"}</td>
@@ -657,6 +1005,11 @@ const AdminCommerce = () => {
             </tbody>
           </table>
         )}
+        <Pagination
+          page={visiblePage}
+          totalRows={activeRowCount}
+          onPageChange={setCurrentPage}
+        />
       </section>
 
       <p className="mt-3 text-right text-xs text-[#8A918B]">
@@ -695,12 +1048,17 @@ const CustomerDetails = ({
     >
       <header className="flex items-start justify-between border-b border-[#D7DCD5] p-5">
         <div>
-          <p className="text-xs font-bold uppercase text-[#0D542B]">Customer</p>
+          <p className="text-xs font-bold uppercase text-[#0D542B]">
+            {customer.role}
+          </p>
           <h2
             id="customer-details-title"
             className="font-display text-2xl font-bold text-[#202522]"
           >
-            {customer.name || "Customer details"}
+            {customer.name ||
+              (customer.role === "guest"
+                ? "Guest details"
+                : "Customer details")}
           </h2>
           <p className="text-sm text-[#68706A]">
             {customer.email || "No email"}

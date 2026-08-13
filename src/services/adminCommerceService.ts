@@ -34,6 +34,7 @@ export interface AdminCart {
   identityType: "admin" | "customer" | "guest";
   userId: string | null;
   customerEmail: string;
+  customerPhone: string;
   status: string;
   checkoutStage: string;
   subtotalSnapshot: number | null;
@@ -53,7 +54,9 @@ export interface AdminCart {
 
 export interface AdminWishlist {
   userId: string;
+  identityType: "admin" | "customer" | "guest";
   customerEmail: string;
+  customerPhone: string;
   updatedAt: string | null;
   itemCount: number;
   items: Array<{ itemId: string; itemName: string; createdAt: string }>;
