@@ -4,6 +4,8 @@ import { Link, useLocation } from "react-router-dom";
 import { formatMoney, getCurrencySymbol } from "../utils/currency";
 
 interface OrderSummaryState {
+  subtotal: number;
+  shippingAmount: number;
   totalAmount: number;
   paymentMethod: string;
   itemCount: number;
@@ -43,6 +45,14 @@ const OrderSuccess = () => {
             </h2>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <p>
+                <span className="font-medium">Subtotal:</span> {currency}
+                {formatMoney(orderSummary.subtotal, true)}
+              </p>
+              <p>
+                <span className="font-medium">Shipping:</span> {currency}
+                {formatMoney(orderSummary.shippingAmount, true)}
+              </p>
               <p>
                 <span className="font-medium">Total:</span> {currency}
                 {formatMoney(orderSummary.totalAmount, true)}

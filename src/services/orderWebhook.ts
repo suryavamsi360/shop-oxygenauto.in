@@ -12,6 +12,8 @@ export interface PlaceOrderRequest {
 export interface PlaceOrderResponse {
   orderReference: string;
   orderSummary: {
+    subtotal: number;
+    shippingAmount: number;
     totalAmount: number;
     paymentMethod: string;
     itemCount: number;

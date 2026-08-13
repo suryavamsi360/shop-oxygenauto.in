@@ -1,4 +1,4 @@
-import { PlusIcon, SquarePenIcon } from "lucide-react";
+import { LoaderCircle, PlusIcon, SquarePenIcon, Truck } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 
 import AddressModal from "./AddressModal";
 import { placeOrder } from "../../services/orderWebhook";
+import { fetchShippingEstimate } from "../../services/shippingService";
 import { useAddressStore, type Address } from "../../store/addressStore";
 import { useAuthStore } from "../../store/authStore";
 import { useCartStore } from "../../store/cartStore";
@@ -44,6 +45,9 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [shippingAmount, setShippingAmount] = useState<number | null>(null);
+  const [isShippingLoading, setIsShippingLoading] = useState(false);
+  const [shippingError, setShippingError] = useState("");
 
   const selectedAddress = useMemo<Address | null>(() => {
     if (!selectedAddressId) return null;
@@ -62,6 +66,17 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
     [cartItems, productDetailsByItemId, products],
   );
 
+  const shippingItems = useMemo(
+    () =>
+      Object.entries(cartItems).map(([itemId, quantity]) => ({
+        itemId,
+        quantity,
+      })),
+    [cartItems],
+  );
+  const totalAmount =
+    shippingAmount === null ? null : totalPrice + shippingAmount;
+
   useEffect(() => {
     if (user) {
       void loadAddresses();
@@ -69,6 +84,53 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
       resetAddresses();
     }
   }, [isAuthInitialized, loadAddresses, resetAddresses, user]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!user || !selectedAddress || shippingItems.length === 0) {
+      setShippingAmount(null);
+      setShippingError("");
+      setIsShippingLoading(false);
+      return;
+    }
+
+    setShippingAmount(null);
+    setShippingError("");
+    setIsShippingLoading(true);
+
+    const timeoutId = window.setTimeout(() => {
+      void fetchShippingEstimate({
+        addressId: selectedAddress.id,
+        items: shippingItems,
+        paymentMethod: "COD",
+      })
+        .then((estimate) => {
+          if (!cancelled) {
+            setShippingAmount(estimate.amount);
+          }
+        })
+        .catch((error) => {
+          if (!cancelled) {
+            setShippingError(
+              error instanceof Error
+                ? error.message
+                : "Shipping estimate is unavailable.",
+            );
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsShippingLoading(false);
+          }
+        });
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [selectedAddress, shippingItems, user]);
 
   const handlePlaceOrder = async (
     event: ReactMouseEvent<HTMLButtonElement>,
@@ -200,33 +262,64 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
         </div>
 
         <div className="border-b border-slate-200 pb-4">
-          <div className="flex justify-between">
-            <div className="flex flex-col gap-1 text-slate-400">
-              <p>Subtotal:</p>
-              <p>Shipping:</p>
-            </div>
-            <div className="flex flex-col gap-1 text-right font-medium">
-              <p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-slate-500">Subtotal</span>
+              <span className="font-medium text-slate-700">
                 {currency}
                 {formatMoney(totalPrice, true)}
-              </p>
-              <p>Extra</p>
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="inline-flex items-center gap-2 text-slate-500">
+                <Truck size={16} />
+                Estimated shipping
+              </span>
+              <span
+                className="text-right font-medium text-slate-700"
+                role="status"
+                aria-live="polite"
+              >
+                {isShippingLoading ? (
+                  <span className="inline-flex items-center gap-1.5 text-slate-500">
+                    <LoaderCircle size={14} className="animate-spin" />
+                    Calculating
+                  </span>
+                ) : shippingAmount !== null ? (
+                  `${currency}${formatMoney(shippingAmount, true)}`
+                ) : selectedAddress ? (
+                  "Unavailable"
+                ) : (
+                  "Select address"
+                )}
+              </span>
             </div>
           </div>
         </div>
 
         <div className="pt-4 text-slate-700">
           <div className="flex items-center justify-between text-lg font-semibold">
-            <span>Total</span>
+            <span>Total amount</span>
             <span>
-              {currency}
-              {formatMoney(totalPrice, true)}
+              {totalAmount === null
+                ? "—"
+                : `${currency}${formatMoney(totalAmount, true)}`}
             </span>
           </div>
+          <p className="mt-1 text-xs text-slate-400">
+            Shipping estimate includes applicable Delhivery charges and taxes.
+          </p>
 
           <button
             type="button"
-            disabled={isSubmitting || !isAuthInitialized}
+            disabled={
+              isSubmitting ||
+              !isAuthInitialized ||
+              Boolean(
+                selectedAddress &&
+                (isShippingLoading || shippingAmount === null),
+              )
+            }
             onClick={handlePlaceOrder}
             className="mt-5 w-full rounded-md bg-slate-800 px-4 py-3 font-medium text-white transition hover:bg-slate-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -240,6 +333,11 @@ const OrderSummary = ({ totalPrice }: OrderSummaryProps) => {
           {formError && (
             <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
               {formError}
+            </div>
+          )}
+          {shippingError && (
+            <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              {shippingError}
             </div>
           )}
         </div>
