@@ -5,6 +5,7 @@ import Loading from "../components/layout/Loading";
 import ProductCompatibilityList from "../components/layout/ProductCompatibilityList";
 import ProductDescription from "../components/layout/ProductDescription";
 import ProductDetails from "../components/layout/ProductDetails";
+import SimilarProducts from "../components/layout/SimilarProducts";
 import ProductTestingInfo from "../components/layout/ProductTestingInfo";
 
 import { useProductStore } from "../store/productStore";
@@ -106,6 +107,9 @@ const Product = () => {
 
         {/* Product Details */}
         {product && <ProductDetails key={product.itemId} product={product} />}
+
+        {/* Similar Products */}
+        {product && <SimilarProducts key={product.itemId} product={product} />}
 
         {/* Description */}
         {product && <ProductDescription product={product} />}

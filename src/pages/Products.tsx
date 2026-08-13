@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import {
   AlertCircle,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   MoveLeft,
@@ -46,6 +45,7 @@ const Shop = () => {
   const navigate = useNavigate();
 
   const search = searchParams.get("search") || "";
+  const excludeItemId = searchParams.get("excludeItemId")?.trim() || "";
   const filters = useMemo<FilterState>(
     () => ({
       maker: searchParams.get("maker")?.trim() || "",
@@ -61,14 +61,12 @@ const Shop = () => {
       ? requestedPage
       : 1;
   }, [searchParams]);
-  const [showRefreshConfirmation, setShowRefreshConfirmation] = useState(false);
 
   const products = useProductStore((state) => state.products);
   const total = useProductStore((state) => state.total);
   const limit = useProductStore((state) => state.limit);
   const facets = useProductStore((state) => state.facets);
   const isLoading = useProductStore((state) => state.isLoading);
-  const isRefreshing = useProductStore((state) => state.isRefreshing);
   const error = useProductStore((state) => state.error);
   const loadProducts = useProductStore((state) => state.loadProducts);
 
@@ -92,9 +90,10 @@ const Shop = () => {
       page: currentPage,
       limit: ITEMS_PER_PAGE,
       search: (search ?? "").trim(),
+      excludeItemId,
       ...normalizedFilters,
     };
-  }, [currentPage, filters, search]);
+  }, [currentPage, excludeItemId, filters, search]);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,18 +127,6 @@ const Shop = () => {
     };
   }, [currentPage, loadProducts, requestQuery, setSearchParams]);
 
-  useEffect(() => {
-    if (!showRefreshConfirmation) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setShowRefreshConfirmation(false);
-    }, 3000);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [showRefreshConfirmation]);
-
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setSearchParams((currentParams) => {
       const nextParams = new URLSearchParams(currentParams);
@@ -162,6 +149,7 @@ const Shop = () => {
       for (const key of FILTER_KEYS) {
         nextParams.delete(key);
       }
+      nextParams.delete("excludeItemId");
       nextParams.delete("page");
       return nextParams;
     });
@@ -189,11 +177,7 @@ const Shop = () => {
     handlePageChange(Math.trunc(requestedPage));
   };
 
-  const handleRefreshSearch = async () => {
-    setShowRefreshConfirmation(false);
-    const refreshed = await loadProducts(requestQuery, { force: true });
-    setShowRefreshConfirmation(refreshed);
-  };
+  const handleRefreshSearch = () => loadProducts(requestQuery, { force: true });
 
   const handlePostRequirement = () => {
     window.open(REQUIREMENT_CTA_URL, "_blank", "noopener,noreferrer");
@@ -219,33 +203,6 @@ const Shop = () => {
               {isLoading
                 ? "Checking current inventory"
                 : `${total.toLocaleString()} stocked ${total === 1 ? "part" : "parts"}`}
-            </p>
-          </div>
-
-          <div className="flex flex-col items-end gap-2">
-            <Button
-              type="button"
-              onClick={handleRefreshSearch}
-              disabled={isLoading || isRefreshing}
-              variant="secondary"
-              size="sm"
-              title="Refresh catalogue results"
-            >
-              <RefreshCw
-                size={16}
-                className={isRefreshing ? "animate-spin" : undefined}
-              />
-              Refresh inventory
-            </Button>
-            <p
-              role="status"
-              aria-live="polite"
-              className={`flex min-h-5 items-center gap-1.5 text-xs font-semibold text-[#0D542B] transition-opacity ${
-                showRefreshConfirmation ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              <CheckCircle2 size={14} />
-              Inventory refreshed
             </p>
           </div>
         </header>
@@ -365,11 +322,10 @@ const Shop = () => {
           <EmptyState
             icon={PackageSearch}
             title="No stocked parts"
-            description="Current inventory is unavailable. Refresh the catalogue or send us the part you need."
+            description="Current inventory is unavailable. Send us the part you need and our team will help source it."
             action={
-              <Button type="button" onClick={handleRefreshSearch}>
-                <RefreshCw size={16} />
-                Refresh inventory
+              <Button type="button" onClick={handlePostRequirement}>
+                Post requirement
               </Button>
             }
           />

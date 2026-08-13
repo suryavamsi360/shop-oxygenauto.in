@@ -1,4 +1,5 @@
-import { RotateCcw, SlidersHorizontal } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, RotateCcw, SlidersHorizontal } from "lucide-react";
 
 interface FilterState {
   maker: string;
@@ -57,26 +58,47 @@ const ProductFilters = ({
   onFilterChange,
   onReset,
 }: ProductFiltersProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasActiveFilters = Object.values(filters).some(
+    (value) => value.trim().length > 0,
+  );
+
   return (
-    <section className="mb-8 border-y border-[#D7DCD5] bg-[#E9ECE6]/80 py-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-[#202522]">
+    <section className="mb-8 border-y border-[#D7DCD5] bg-[#E9ECE6]/80 py-1">
+      <div className="mb-1 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => setIsExpanded((expanded) => !expanded)}
+          aria-expanded={isExpanded}
+          aria-controls="fitment-filter-fields"
+          className="flex min-h-9 flex-1 items-center gap-2 text-left text-[#202522]"
+        >
           <SlidersHorizontal size={17} />
           <h2 className="font-display text-lg font-semibold uppercase">
             Fitment filters
           </h2>
-        </div>
-        <button
-          type="button"
-          onClick={onReset}
-          className="inline-flex min-h-9 items-center gap-2 rounded-md px-2.5 text-xs font-semibold text-[#59615B] transition hover:bg-white hover:text-[#0D542B]"
-        >
-          <RotateCcw size={14} />
-          Reset
+          <ChevronDown
+            size={18}
+            className={`ml-1 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+          />
         </button>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={onReset}
+            className="inline-flex min-h-9 items-center gap-2 rounded-md px-2.5 text-xs font-semibold text-[#59615B] transition hover:bg-white hover:text-[#0D542B]"
+          >
+            <RotateCcw size={14} />
+            Reset
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div
+        id="fitment-filter-fields"
+        hidden={!isExpanded}
+        className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+      >
         <SelectFilter
           label="Maker"
           value={filters.maker}

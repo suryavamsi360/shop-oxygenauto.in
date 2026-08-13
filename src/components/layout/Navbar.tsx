@@ -29,20 +29,15 @@ const Navbar = () => {
       <div className="mx-auto flex min-h-18 max-w-[1440px] flex-wrap items-center gap-3 px-4 py-3 md:flex-nowrap md:gap-4 md:py-0 sm:px-6 lg:px-8">
         <Link
           to="/"
-          className="flex shrink-0 items-center gap-2 text-[#202522]"
+          className="flex shrink-0 items-center"
           aria-label="Oxygen Auto home"
         >
-          <span className="flex size-9 items-center justify-center overflow-hidden rounded-md bg-white">
-            <img
-              src="/favicon.ico"
-              alt=""
-              aria-hidden="true"
-              className="size-9 object-contain"
-            />
-          </span>
-          <span className="font-display text-2xl font-bold uppercase leading-none sm:text-3xl">
-            Oxygen <span className="text-[#0D542B]">Auto</span>
-          </span>
+          <img
+            src="/logo.png"
+            alt=""
+            aria-hidden="true"
+            className="h-10 w-auto object-contain sm:h-12"
+          />
         </Link>
 
         <form

@@ -8,6 +8,7 @@ export interface ProductCatalogQuery {
   lineConfiguration?: string;
   year?: string;
   partCategory?: string;
+  excludeItemId?: string;
 }
 
 export interface FacetOption {
@@ -198,6 +199,7 @@ const buildCatalogUrl = (query: ProductCatalogQuery) => {
     "lineConfiguration",
     "year",
     "partCategory",
+    "excludeItemId",
   ];
 
   for (const key of filterKeys) {

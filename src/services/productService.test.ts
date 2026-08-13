@@ -104,6 +104,25 @@ describe("productService", () => {
     });
   });
 
+  it("serializes the current item exclusion", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ products: [], facets: {} }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchProducts({
+      maker: " Honda ",
+      excludeItemId: " ITM-1 ",
+      limit: 10,
+    });
+
+    const requestUrl = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(requestUrl.searchParams.get("maker")).toBe("Honda");
+    expect(requestUrl.searchParams.get("excludeItemId")).toBe("ITM-1");
+    expect(requestUrl.searchParams.get("limit")).toBe("10");
+  });
+
   it("parses product detail response", async () => {
     vi.stubGlobal(
       "fetch",

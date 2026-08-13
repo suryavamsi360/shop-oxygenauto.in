@@ -56,7 +56,7 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
               <img
                 src={getProductImage([image])}
                 alt={primaryName}
-                className="max-h-20 transition group-hover:scale-105 group-active:scale-95"
+                className="h-full max-h-[94%] w-full max-w-[94%] object-contain transition group-hover:scale-105 group-active:scale-95"
               />
             </div>
           ))}
@@ -66,7 +66,7 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
           <img
             src={mainImage}
             alt={primaryName}
-            className="max-h-72 object-contain"
+            className="h-full max-h-[94%] w-full max-w-[94%] object-contain"
           />
         </div>
       </div>
@@ -118,7 +118,7 @@ const ProductDetails = ({ product }: ProductDetailsProps) => {
               !cart[itemId] ? addToCartHandler() : navigate("/cart")
             }
             disabled={!cart[itemId] && isOutOfStock}
-            className="rounded-full bg-gradient-to-r from-slate-800 to-slate-700 px-8 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-900 hover:shadow-lg active:scale-95"
+            className="rounded-full bg-[#187A45] px-8 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#126638] hover:shadow-lg active:scale-95"
           >
             {!cart[itemId]
               ? isOutOfStock

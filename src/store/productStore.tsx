@@ -40,6 +40,7 @@ const normalizeCatalogQuery = (
   lineConfiguration: query.lineConfiguration?.trim() || "",
   year: query.year?.trim() || "",
   partCategory: query.partCategory?.trim() || "",
+  excludeItemId: query.excludeItemId?.trim() || "",
 });
 
 const getCatalogQueryKey = (query: Required<ProductCatalogQuery>) =>

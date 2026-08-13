@@ -57,7 +57,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           <img
             src={getProductImage(product.images)}
             alt={primaryName}
-            className="absolute inset-0 m-auto h-full max-h-[82%] w-full max-w-[82%] object-contain transition duration-300 group-hover:scale-[1.04]"
+            className="absolute inset-0 m-auto h-full max-h-[94%] w-full max-w-[94%] object-contain transition duration-300 group-hover:scale-[1.04]"
           />
         </div>
 
@@ -117,7 +117,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             aria-label={
               isOutOfStock ? "Out of stock" : `Add ${primaryName} to cart`
             }
-            className="flex h-8 w-full items-center justify-center gap-1 rounded-md bg-[#0D542B] px-1 text-[9px] font-bold uppercase text-white transition hover:bg-[#093F20] disabled:cursor-not-allowed disabled:bg-[#8A918B]"
+            className="flex h-8 w-full items-center justify-center gap-1 rounded-md bg-[#187A45] px-1 text-[9px] font-bold uppercase text-white transition hover:bg-[#126638] disabled:cursor-not-allowed disabled:bg-[#8A918B]"
           >
             {!isOutOfStock && <ShoppingCart size={13} />}
             <span>{isOutOfStock ? "Out of stock" : "Add to cart"}</span>
