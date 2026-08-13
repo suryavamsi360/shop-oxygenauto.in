@@ -26,11 +26,12 @@ export interface AdminOrder {
   destinationPincode: string | null;
   placedAt: string;
   statusUpdatedAt: string;
+  updatedAt: string;
 }
 
 export interface AdminCart {
   id: string;
-  identityType: "customer" | "guest";
+  identityType: "admin" | "customer" | "guest";
   userId: string | null;
   customerEmail: string;
   status: string;
@@ -41,6 +42,7 @@ export interface AdminCart {
   abandonedAt: string | null;
   convertedAt: string | null;
   convertedOrderReference: string | null;
+  itemCount: number;
   items: Array<{
     itemId: string;
     name: string;
@@ -53,7 +55,21 @@ export interface AdminWishlist {
   userId: string;
   customerEmail: string;
   updatedAt: string | null;
+  itemCount: number;
   items: Array<{ itemId: string; itemName: string; createdAt: string }>;
+}
+
+export interface AdminCustomerAddress {
+  name: string;
+  mobile: string;
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  pincode: string;
+  landmark: string;
+  isDefault: boolean;
+  updatedAt: string;
 }
 
 export interface AdminCustomer {
@@ -66,7 +82,11 @@ export interface AdminCustomer {
   state: string;
   createdAt: string | null;
   lastSignInAt: string | null;
+  lastUpdatedAt: string | null;
   wishlistCount: number;
+  cartCount: number;
+  orderCount: number;
+  addresses: AdminCustomerAddress[];
 }
 
 export interface AdminDashboardResponse {
@@ -76,6 +96,7 @@ export interface AdminDashboardResponse {
     activeCarts: number;
     abandonedCarts: number;
     liveOrders: number;
+    wishlistItems: number;
     activityLast24Hours: number;
   };
   orders: AdminOrder[];

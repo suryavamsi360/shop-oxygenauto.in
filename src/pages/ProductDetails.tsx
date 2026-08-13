@@ -8,11 +8,17 @@ import ProductDetails from "../components/layout/ProductDetails";
 import SimilarProducts from "../components/layout/SimilarProducts";
 import ProductTestingInfo from "../components/layout/ProductTestingInfo";
 
+import { useAuthStore } from "../store/authStore";
 import { useProductStore } from "../store/productStore";
 import type { ProductItem } from "../types/product";
 
 const Product = () => {
   const { itemId } = useParams();
+  const user = useAuthStore((state) => state.user);
+  const isAdmin =
+    String(user?.app_metadata?.role || "")
+      .trim()
+      .toLowerCase() === "admin";
 
   const products = useProductStore((state) => state.products);
   const loadProductDetail = useProductStore((state) => state.loadProductDetail);
@@ -115,7 +121,7 @@ const Product = () => {
         {product && <SimilarProducts key={product.itemId} product={product} />}
 
         {/* Testing Data */}
-        {product && <ProductTestingInfo product={product} />}
+        {product && isAdmin && <ProductTestingInfo product={product} />}
 
         {/* Compatibility List */}
         {product && <ProductCompatibilityList product={product} />}

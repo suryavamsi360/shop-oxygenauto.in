@@ -44,13 +44,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   initialize: () => {
     let active = true;
 
-    void supabase.auth.getSession().then(({ data, error }) => {
+    void supabase.auth.getSession().then(async ({ data, error }) => {
+      const session = data.session;
+      const currentUser = session ? await supabase.auth.getUser() : null;
       if (!active) return;
       set({
-        session: data.session,
-        user: data.session?.user || null,
+        session,
+        user: currentUser?.data.user || session?.user || null,
         isInitialized: true,
-        error: error?.message || null,
+        error: error?.message || currentUser?.error?.message || null,
       });
     });
 

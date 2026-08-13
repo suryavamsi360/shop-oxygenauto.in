@@ -1,10 +1,12 @@
 import {
+  CircleAlert,
   Heart,
   LoaderCircle,
   PackageCheck,
   RefreshCw,
   ShoppingCart,
   Users,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +15,7 @@ import {
   fetchAdminDashboard,
   updateAdminOrderStatus,
   type AdminDashboardResponse,
+  type AdminCustomer,
   type OrderStatus,
 } from "../services/adminCommerceService";
 import { useAuthStore } from "../store/authStore";
@@ -47,6 +50,27 @@ const statusClass = (status: string) => {
   return "bg-[#FFF4D6] text-[#7A4D00]";
 };
 
+const descendingByDate = <T,>(
+  items: T[],
+  getDate: (item: T) => string | null,
+) =>
+  [...items].sort(
+    (left, right) =>
+      new Date(getDate(right) || 0).getTime() -
+      new Date(getDate(left) || 0).getTime(),
+  );
+
+const ProductLink = ({ itemId, name }: { itemId: string; name: string }) => (
+  <a
+    href={`/products/${encodeURIComponent(itemId)}`}
+    target="_blank"
+    rel="noreferrer"
+    className="font-medium text-[#0D542B] underline decoration-[#AFC8B7] underline-offset-2 hover:decoration-[#0D542B]"
+  >
+    {name}
+  </a>
+);
+
 const AdminCommerce = () => {
   const navigate = useNavigate();
   const currency = getCurrencySymbol();
@@ -60,6 +84,7 @@ const AdminCommerce = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [updatingOrder, setUpdatingOrder] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
 
   const loadDashboard = async (quiet = false) => {
     if (!quiet) setIsLoading(true);
@@ -94,48 +119,73 @@ const AdminCommerce = () => {
   const normalizedSearch = search.trim().toLowerCase();
   const filteredOrders = useMemo(
     () =>
-      (dashboard?.orders || []).filter((order) =>
-        [order.orderReference, order.customerEmail, order.status]
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedSearch),
+      descendingByDate(
+        (dashboard?.orders || []).filter((order) =>
+          [order.orderReference, order.customerEmail, order.status]
+            .join(" ")
+            .toLowerCase()
+            .includes(normalizedSearch),
+        ),
+        (order) => order.updatedAt,
       ),
     [dashboard?.orders, normalizedSearch],
   );
   const filteredCarts = useMemo(
     () =>
-      (dashboard?.carts || []).filter((cart) =>
-        [cart.id, cart.customerEmail, cart.identityType, cart.status]
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedSearch),
+      descendingByDate(
+        (dashboard?.carts || []).filter((cart) =>
+          [cart.id, cart.customerEmail, cart.identityType, cart.status]
+            .join(" ")
+            .toLowerCase()
+            .includes(normalizedSearch),
+        ),
+        (cart) => cart.lastActivityAt,
       ),
     [dashboard?.carts, normalizedSearch],
   );
   const filteredWishlists = useMemo(
     () =>
-      (dashboard?.wishlists || []).filter((wishlist) =>
-        [
-          wishlist.customerEmail,
-          wishlist.userId,
-          ...wishlist.items.map((item) => item.itemName),
-        ]
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedSearch),
+      descendingByDate(
+        (dashboard?.wishlists || []).filter((wishlist) =>
+          [
+            wishlist.customerEmail,
+            wishlist.userId,
+            ...wishlist.items.map((item) => item.itemName),
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(normalizedSearch),
+        ),
+        (wishlist) => wishlist.updatedAt,
       ),
     [dashboard?.wishlists, normalizedSearch],
   );
+  const commerceCustomers = useMemo(
+    () =>
+      (dashboard?.customers || []).filter(
+        (customer) => customer.role.toLowerCase() !== "admin",
+      ),
+    [dashboard?.customers],
+  );
   const filteredCustomers = useMemo(
     () =>
-      (dashboard?.customers || []).filter((customer) =>
-        [customer.email, customer.phone, customer.name, customer.city]
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedSearch),
+      descendingByDate(
+        commerceCustomers.filter((customer) =>
+          [customer.email, customer.phone, customer.name, customer.city]
+            .join(" ")
+            .toLowerCase()
+            .includes(normalizedSearch),
+        ),
+        (customer) => customer.lastUpdatedAt,
       ),
-    [dashboard?.customers, normalizedSearch],
+    [commerceCustomers, normalizedSearch],
   );
+  const selectedCustomer = dashboard?.customers.find(
+    (customer) => customer.id === selectedCustomerId,
+  );
+  const openCustomer = (customerId: string | null) => {
+    if (customerId) setSelectedCustomerId(customerId);
+  };
 
   const handleOrderStatus = async (
     orderReference: string,
@@ -198,11 +248,25 @@ const AdminCommerce = () => {
       icon: ShoppingCart,
     },
     {
-      label: "Abandoned",
-      value: dashboard.summary.abandonedCarts,
+      label: "Wishlist items",
+      value: dashboard.summary.wishlistItems,
       icon: Heart,
     },
+    {
+      label: "Abandoned",
+      value: dashboard.summary.abandonedCarts,
+      icon: CircleAlert,
+    },
   ];
+  const tabCounts: Record<(typeof TABS)[number], number> = {
+    orders: dashboard.orders.length,
+    carts: dashboard.carts.reduce((total, cart) => total + cart.itemCount, 0),
+    wishlists: dashboard.wishlists.reduce(
+      (total, wishlist) => total + wishlist.itemCount,
+      0,
+    ),
+    customers: commerceCustomers.length,
+  };
 
   return (
     <main className="mx-auto min-h-screen max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
@@ -230,7 +294,7 @@ const AdminCommerce = () => {
         </button>
       </header>
 
-      <section className="grid grid-cols-2 border-b border-[#D7DCD5] md:grid-cols-4">
+      <section className="grid grid-cols-2 border-b border-[#D7DCD5] sm:grid-cols-3 lg:grid-cols-5">
         {metrics.map(({ label, value, icon: Icon }) => (
           <div
             key={label}
@@ -261,6 +325,15 @@ const AdminCommerce = () => {
               }`}
             >
               {tab}
+              <span
+                className={`ml-2 rounded px-1.5 py-0.5 text-xs ${
+                  activeTab === tab
+                    ? "bg-[#E5F3EA] text-[#0D542B]"
+                    : "bg-[#EEF0EC] text-[#68706A]"
+                }`}
+              >
+                {tabCounts[tab]}
+              </span>
             </button>
           ))}
         </div>
@@ -290,7 +363,7 @@ const AdminCommerce = () => {
                 <th className="p-3">Customer</th>
                 <th className="p-3">Items</th>
                 <th className="p-3">Total</th>
-                <th className="p-3">Placed</th>
+                <th className="p-3">Last updated</th>
                 <th className="p-3">Webhook</th>
                 <th className="p-3">Status</th>
               </tr>
@@ -302,9 +375,17 @@ const AdminCommerce = () => {
                     {order.orderReference}
                   </td>
                   <td className="p-3">
-                    <p className="font-medium">
-                      {order.customerEmail || "Guest"}
-                    </p>
+                    {order.userId ? (
+                      <button
+                        type="button"
+                        onClick={() => openCustomer(order.userId)}
+                        className="font-medium text-[#0D542B] underline underline-offset-2"
+                      >
+                        {order.customerEmail || "Customer"}
+                      </button>
+                    ) : (
+                      <p className="font-medium">Guest</p>
+                    )}
                     <p className="text-xs text-[#68706A]">
                       {order.destinationPincode || "-"}
                     </p>
@@ -314,7 +395,7 @@ const AdminCommerce = () => {
                     {currency}
                     {formatMoney(order.totalAmount)}
                   </td>
-                  <td className="p-3 text-xs">{formatDate(order.placedAt)}</td>
+                  <td className="p-3 text-xs">{formatDate(order.updatedAt)}</td>
                   <td className="p-3">
                     <span
                       className={`rounded px-2 py-1 text-xs font-semibold ${statusClass(order.webhookStatus)}`}
@@ -352,7 +433,7 @@ const AdminCommerce = () => {
             <thead className="bg-[#F5F7F3] text-xs uppercase text-[#68706A]">
               <tr>
                 <th className="p-3">Identity</th>
-                <th className="p-3">Items</th>
+                <th className="p-3">Items ({tabCounts.carts})</th>
                 <th className="p-3">Value</th>
                 <th className="p-3">Stage</th>
                 <th className="p-3">Status</th>
@@ -369,16 +450,35 @@ const AdminCommerce = () => {
                     <span className="text-xs font-bold uppercase text-[#0D542B]">
                       {cart.identityType}
                     </span>
-                    <p className="mt-1 text-xs">
-                      {cart.customerEmail || cart.id.slice(0, 12)}
-                    </p>
+                    <span className="mx-1">-</span>
+                    {cart.userId ? (
+                      <button
+                        type="button"
+                        onClick={() => openCustomer(cart.userId)}
+                        className="mt-1 text-xs text-[#0D542B] underline underline-offset-2"
+                      >
+                        {cart.customerEmail || "Customer"}
+                      </button>
+                    ) : (
+                      <p className="mt-1 text-xs">{cart.id.slice(0, 12)}</p>
+                    )}
                   </td>
                   <td className="max-w-md p-3">
-                    {cart.items.length
-                      ? cart.items
-                          .map((item) => `${item.quantity}x ${item.name}`)
-                          .join(", ")
-                      : "Empty"}
+                    {cart.items.length ? (
+                      <div className="space-y-1">
+                        {cart.items.map((item) => (
+                          <p key={item.itemId}>
+                            {item.quantity}x{" "}
+                            <ProductLink
+                              itemId={item.itemId}
+                              name={item.name}
+                            />
+                          </p>
+                        ))}
+                      </div>
+                    ) : (
+                      "Empty"
+                    )}
                   </td>
                   <td className="p-3">
                     {cart.subtotalSnapshot === null
@@ -409,7 +509,7 @@ const AdminCommerce = () => {
             <thead className="bg-[#F5F7F3] text-xs uppercase text-[#68706A]">
               <tr>
                 <th className="p-3">Customer</th>
-                <th className="p-3">Saved items</th>
+                <th className="p-3">Saved items ({tabCounts.wishlists})</th>
                 <th className="p-3">Count</th>
                 <th className="p-3">Updated</th>
               </tr>
@@ -421,12 +521,27 @@ const AdminCommerce = () => {
                   className="border-t border-[#E1E5DF] align-top"
                 >
                   <td className="p-3">
-                    {wishlist.customerEmail || wishlist.userId}
+                    <button
+                      type="button"
+                      onClick={() => openCustomer(wishlist.userId)}
+                      className="text-[#0D542B] underline underline-offset-2"
+                    >
+                      {wishlist.customerEmail || wishlist.userId}
+                    </button>
                   </td>
                   <td className="max-w-2xl p-3">
-                    {wishlist.items.map((item) => item.itemName).join(", ")}
+                    <div className="space-y-1">
+                      {wishlist.items.map((item) => (
+                        <p key={item.itemId}>
+                          <ProductLink
+                            itemId={item.itemId}
+                            name={item.itemName}
+                          />
+                        </p>
+                      ))}
+                    </div>
                   </td>
-                  <td className="p-3">{wishlist.items.length}</td>
+                  <td className="p-3">{wishlist.itemCount}</td>
                   <td className="p-3 text-xs">
                     {formatDate(wishlist.updatedAt)}
                   </td>
@@ -445,15 +560,25 @@ const AdminCommerce = () => {
                 <th className="p-3">Location</th>
                 <th className="p-3">Wishlist</th>
                 <th className="p-3">Joined</th>
-                <th className="p-3">Last sign-in</th>
+                <th className="p-3">Last updated</th>
               </tr>
             </thead>
             <tbody>
               {filteredCustomers.map((customer) => (
                 <tr key={customer.id} className="border-t border-[#E1E5DF]">
                   <td className="p-3">
-                    <p className="font-medium">{customer.name || "Customer"}</p>
-                    <p className="text-xs text-[#68706A]">{customer.email}</p>
+                    <button
+                      type="button"
+                      onClick={() => openCustomer(customer.id)}
+                      className="text-left"
+                    >
+                      <span className="block font-medium text-[#0D542B] underline underline-offset-2">
+                        {customer.name || "Customer"}
+                      </span>
+                      <span className="block text-xs text-[#68706A]">
+                        {customer.email}
+                      </span>
+                    </button>
                   </td>
                   <td className="p-3">{customer.phone || "-"}</td>
                   <td className="p-3">
@@ -466,7 +591,7 @@ const AdminCommerce = () => {
                     {formatDate(customer.createdAt)}
                   </td>
                   <td className="p-3 text-xs">
-                    {formatDate(customer.lastSignInAt)}
+                    {formatDate(customer.lastUpdatedAt)}
                   </td>
                 </tr>
               ))}
@@ -478,8 +603,141 @@ const AdminCommerce = () => {
       <p className="mt-3 text-right text-xs text-[#8A918B]">
         Updated {formatDate(dashboard.generatedAt)} · refreshes every 15 seconds
       </p>
+
+      {selectedCustomer && (
+        <CustomerDetails
+          customer={selectedCustomer}
+          onClose={() => setSelectedCustomerId("")}
+        />
+      )}
     </main>
   );
 };
+
+const CustomerDetails = ({
+  customer,
+  onClose,
+}: {
+  customer: AdminCustomer;
+  onClose: () => void;
+}) => (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+    role="presentation"
+    onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose();
+    }}
+  >
+    <section
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="customer-details-title"
+      className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-md bg-white shadow-xl"
+    >
+      <header className="flex items-start justify-between border-b border-[#D7DCD5] p-5">
+        <div>
+          <p className="text-xs font-bold uppercase text-[#0D542B]">Customer</p>
+          <h2
+            id="customer-details-title"
+            className="font-display text-2xl font-bold text-[#202522]"
+          >
+            {customer.name || "Customer details"}
+          </h2>
+          <p className="text-sm text-[#68706A]">
+            {customer.email || "No email"}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex size-9 items-center justify-center rounded-md text-[#68706A] hover:bg-[#EEF0EC]"
+          aria-label="Close customer details"
+          title="Close customer details"
+        >
+          <X size={19} />
+        </button>
+      </header>
+
+      <div className="grid grid-cols-3 border-b border-[#D7DCD5]">
+        {[
+          ["Orders", customer.orderCount],
+          ["Cart records", customer.cartCount],
+          ["Wishlist", customer.wishlistCount],
+        ].map(([label, value]) => (
+          <div
+            key={label}
+            className="border-r border-[#D7DCD5] p-4 last:border-r-0"
+          >
+            <p className="text-xs font-bold uppercase text-[#68706A]">
+              {label}
+            </p>
+            <p className="mt-1 font-display text-2xl font-bold text-[#202522]">
+              {value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-5 p-5 sm:grid-cols-2">
+        <div>
+          <h3 className="text-sm font-bold text-[#202522]">Account</h3>
+          <dl className="mt-3 space-y-2 text-sm">
+            <div>
+              <dt className="text-[#68706A]">Phone</dt>
+              <dd>{customer.phone || "-"}</dd>
+            </div>
+            <div>
+              <dt className="text-[#68706A]">Role</dt>
+              <dd className="capitalize">{customer.role}</dd>
+            </div>
+            <div>
+              <dt className="text-[#68706A]">Joined</dt>
+              <dd>{formatDate(customer.createdAt)}</dd>
+            </div>
+            <div>
+              <dt className="text-[#68706A]">Last sign-in</dt>
+              <dd>{formatDate(customer.lastSignInAt)}</dd>
+            </div>
+            <div>
+              <dt className="text-[#68706A]">Last updated</dt>
+              <dd>{formatDate(customer.lastUpdatedAt)}</dd>
+            </div>
+          </dl>
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-[#202522]">Addresses</h3>
+          <div className="mt-3 space-y-3">
+            {customer.addresses.length ? (
+              customer.addresses.map((address, index) => (
+                <address
+                  key={`${address.address1}-${index}`}
+                  className="not-italic text-sm leading-6 text-[#404741]"
+                >
+                  <p className="font-semibold text-[#202522]">
+                    {address.name || "Address"}
+                    {address.isDefault ? " · Default" : ""}
+                  </p>
+                  <p>
+                    {[address.address1, address.address2, address.landmark]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                  <p>
+                    {[address.city, address.state, address.pincode]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                  <p>{address.mobile}</p>
+                </address>
+              ))
+            ) : (
+              <p className="text-sm text-[#68706A]">No saved addresses.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+);
 
 export default AdminCommerce;

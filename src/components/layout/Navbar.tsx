@@ -1,4 +1,4 @@
-import { Heart, LogIn, Search, ShoppingCart } from "lucide-react";
+import { Heart, LogIn, Search, ShieldCheck, ShoppingCart } from "lucide-react";
 import type { FormEvent } from "react";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useCartStore } from "../../store/cartStore";
@@ -15,6 +15,10 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const currentSearch = searchParams.get("search") || "";
+  const isAdmin =
+    String(user?.app_metadata?.role || "")
+      .trim()
+      .toLowerCase() === "admin";
 
   const handleSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -71,6 +75,25 @@ const Navbar = () => {
         </form>
 
         <div className="ml-auto flex items-center gap-2 md:ml-0">
+          {isAdmin && (
+            <NavLink
+              to="/admin"
+              aria-label="Admin panel"
+              title="Admin panel"
+              className={({ isActive }) =>
+                `flex min-h-11 items-center gap-2 rounded-md border px-3 transition ${
+                  isActive
+                    ? "border-[#0D542B] bg-[#0D542B] text-white"
+                    : "border-[#B8D8C2] bg-[#E5F3EA] text-[#0D542B] hover:bg-[#D8EDDF]"
+                }`
+              }
+            >
+              <ShieldCheck size={19} />
+              <span className="hidden text-sm font-semibold xl:inline">
+                Admin
+              </span>
+            </NavLink>
+          )}
           {isInitialized &&
             (user ? (
               <ProfileMenu user={user} onSignOut={signOut} />
