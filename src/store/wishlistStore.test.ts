@@ -37,4 +37,16 @@ describe("wishlistStore persistence", () => {
       '["ITEM-202"]',
     );
   });
+
+  it("adds a guest wishlist item only once", async () => {
+    const { useWishlistStore } = await import("./wishlistStore");
+
+    useWishlistStore.getState().addItem("ITEM-101");
+    useWishlistStore.getState().addItem("ITEM-101");
+
+    expect(useWishlistStore.getState().itemIds).toEqual(["ITEM-101"]);
+    expect(window.localStorage.getItem("oxygenauto-wishlist")).toBe(
+      '["ITEM-101"]',
+    );
+  });
 });

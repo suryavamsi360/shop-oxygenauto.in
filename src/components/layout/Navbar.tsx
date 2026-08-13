@@ -151,7 +151,7 @@ const Navbar = () => {
           className="relative basis-full md:hidden"
         >
           <label htmlFor="mobile-catalog-search" className="sr-only">
-            Search parts or item ID
+            Search Maker or Part Name
           </label>
           <Search
             aria-hidden="true"

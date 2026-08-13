@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Trash2Icon } from "lucide-react";
+import { Heart, Trash2Icon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import Button from "../components/common/Button";
@@ -8,8 +8,16 @@ import Loading from "../components/layout/Loading";
 import OrderSummary from "../components/layout/OrderSummary.tsx";
 import PageTitle from "../components/layout/PageTitle";
 
+import {
+  clearPersistentCart,
+  syncAccountCart,
+  syncGuestCart,
+} from "../services/cartSyncService";
+import { addWishlistItem } from "../services/wishlistService";
+import { useAuthStore } from "../store/authStore";
 import { useCartStore } from "../store/cartStore";
 import { useProductStore } from "../store/productStore";
+import { useWishlistStore } from "../store/wishlistStore";
 import type { ProductListItem } from "../types/product";
 import { formatMoney, getCurrencySymbol } from "../utils/currency";
 import { getProductImage } from "../utils/productImage";
@@ -22,6 +30,9 @@ export default function Cart() {
   const cartItems = useCartStore((state) => state.cartItems);
   const deleteItem = useCartStore((state) => state.deleteItem);
   const clearCart = useCartStore((state) => state.clearCart);
+  const replaceCart = useCartStore((state) => state.replaceCart);
+  const user = useAuthStore((state) => state.user);
+  const addWishlistStoreItem = useWishlistStore((state) => state.addItem);
 
   const products = useProductStore((state) => state.products);
   const productDetailsByItemId = useProductStore(
@@ -32,6 +43,8 @@ export default function Cart() {
   const [isHydratingCart, setIsHydratingCart] = useState(
     Object.keys(cartItems).length > 0,
   );
+  const [movingItemId, setMovingItemId] = useState("");
+  const [moveError, setMoveError] = useState("");
 
   const { cartArray, totalPrice } = useMemo(() => {
     let total = 0;
@@ -58,6 +71,42 @@ export default function Cart() {
   const handleClearCart = () => {
     if (window.confirm("Remove all items from your cart?")) {
       clearCart();
+    }
+  };
+
+  const handleMoveToWishlist = async (itemId: string) => {
+    const nextCart = { ...cartItems };
+    delete nextCart[itemId];
+    setMovingItemId(itemId);
+    setMoveError("");
+
+    try {
+      if (user) await addWishlistItem(itemId);
+      addWishlistStoreItem(itemId);
+
+      if (Object.keys(nextCart).length === 0) {
+        await clearPersistentCart(Boolean(user));
+        replaceCart({});
+      } else {
+        const savedCart = user
+          ? await syncAccountCart(nextCart)
+          : await syncGuestCart(nextCart);
+        replaceCart(
+          savedCart
+            ? Object.fromEntries(
+                savedCart.items.map((item) => [item.itemId, item.quantity]),
+              )
+            : nextCart,
+        );
+      }
+    } catch (error) {
+      setMoveError(
+        error instanceof Error
+          ? error.message
+          : "Unable to move this item to the wishlist.",
+      );
+    } finally {
+      setMovingItemId("");
     }
   };
 
@@ -150,6 +199,15 @@ export default function Cart() {
           </Button>
         </div>
 
+        {moveError && (
+          <p
+            role="alert"
+            className="mb-4 rounded-md border border-[#F1B7B2] bg-[#FDECEA] px-4 py-3 text-sm text-[#B42318]"
+          >
+            {moveError}
+          </p>
+        )}
+
         <div className="flex items-start justify-between gap-5 max-lg:flex-col">
           <table className="w-full max-w-4xl table-auto text-slate-600">
             <thead>
@@ -157,7 +215,7 @@ export default function Cart() {
                 <th className="text-left">Product</th>
                 <th>Quantity</th>
                 <th>Total Price</th>
-                <th className="max-md:hidden">Remove</th>
+                <th className="max-md:hidden">Actions</th>
               </tr>
             </thead>
 
@@ -200,6 +258,17 @@ export default function Cart() {
                         {currency}
                         {formatMoney(item.price)}
                       </p>
+                      <button
+                        type="button"
+                        onClick={() => void handleMoveToWishlist(item.itemId)}
+                        disabled={Boolean(movingItemId)}
+                        className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md border border-[#B8D8C2] px-3 text-xs font-semibold text-[#187A45] transition hover:bg-[#E5F3EA] disabled:cursor-wait disabled:opacity-50 md:hidden"
+                      >
+                        <Heart size={15} />
+                        {movingItemId === item.itemId
+                          ? "Moving..."
+                          : "Move to wishlist"}
+                      </button>
                     </div>
                   </td>
 
@@ -216,12 +285,29 @@ export default function Cart() {
                   </td>
 
                   <td className="text-center max-md:hidden">
-                    <button
-                      onClick={() => deleteItem(item.itemId)}
-                      className="rounded-full p-2.5 text-red-500 transition hover:bg-red-50 active:scale-95"
-                    >
-                      <Trash2Icon size={18} />
-                    </button>
+                    <div className="flex items-center justify-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => void handleMoveToWishlist(item.itemId)}
+                        disabled={Boolean(movingItemId)}
+                        title="Move to wishlist"
+                        className="inline-flex min-h-7 items-center justify-center gap-1 whitespace-nowrap rounded px-1.5 text-[11px] font-semibold text-[#187A45] transition hover:bg-[#E5F3EA] disabled:cursor-wait disabled:opacity-50"
+                      >
+                        <Heart size={13} />
+                        {movingItemId === item.itemId
+                          ? "Moving..."
+                          : "To Wishlist"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteItem(item.itemId)}
+                        title="Remove from cart"
+                        className="inline-flex min-h-7 items-center justify-center gap-1 rounded px-1.5 text-[11px] font-semibold text-red-500 transition hover:bg-red-50 active:scale-95"
+                      >
+                        <Trash2Icon size={13} />
+                        Remove
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
