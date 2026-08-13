@@ -1,4 +1,5 @@
 import { ShoppingCart } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useCartStore } from "../../store/cartStore";
@@ -10,9 +11,10 @@ import WishlistButton from "./WishlistButton";
 
 interface ProductCardProps {
   product: ProductListItem;
+  onAddToCart?: (product: ProductListItem) => Promise<void>;
 }
 
-const ProductCard = ({ product }: ProductCardProps) => {
+const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
   const currency = getCurrencySymbol();
   const addToCart = useCartStore((state) => state.addToCart);
   const quantity = useCartStore(
@@ -24,8 +26,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const partName = product.partName?.trim() || "";
   const primaryName = partTitle || partName || product.name;
   const showPartName = partTitle.length > 0 && partName.length > 0;
+  const [isAdding, setIsAdding] = useState(false);
 
-  const handleAddToCart = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleAddToCart = async (
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -33,7 +38,17 @@ const ProductCard = ({ product }: ProductCardProps) => {
       return;
     }
 
-    addToCart(product.itemId, product.stockQuantity);
+    if (!onAddToCart) {
+      addToCart(product.itemId, product.stockQuantity);
+      return;
+    }
+
+    setIsAdding(true);
+    try {
+      await onAddToCart(product);
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const isOutOfStock = product.stockQuantity <= 0;
@@ -118,15 +133,21 @@ const ProductCard = ({ product }: ProductCardProps) => {
         <div className="mt-auto p-1.5 pt-0 sm:p-2 sm:pt-0">
           <button
             type="button"
-            onClick={handleAddToCart}
-            disabled={isOutOfStock}
+            onClick={(event) => void handleAddToCart(event)}
+            disabled={isOutOfStock || isAdding}
             aria-label={
               isOutOfStock ? "Out of stock" : `Add ${primaryName} to cart`
             }
             className="flex h-8 w-full items-center justify-center gap-1 rounded-md bg-[#187A45] px-1 text-[9px] font-bold uppercase text-white transition hover:bg-[#126638] disabled:cursor-not-allowed disabled:bg-[#8A918B]"
           >
             {!isOutOfStock && <ShoppingCart size={13} />}
-            <span>{isOutOfStock ? "Out of stock" : "Add to cart"}</span>
+            <span>
+              {isOutOfStock
+                ? "Out of stock"
+                : isAdding
+                  ? "Moving..."
+                  : "Add to cart"}
+            </span>
           </button>
         </div>
       )}

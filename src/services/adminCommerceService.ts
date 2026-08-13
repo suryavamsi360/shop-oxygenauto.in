@@ -93,6 +93,7 @@ export interface AdminDashboardResponse {
   generatedAt: string;
   summary: {
     customers: number;
+    admins: number;
     activeCarts: number;
     abandonedCarts: number;
     liveOrders: number;
@@ -103,6 +104,7 @@ export interface AdminDashboardResponse {
   carts: AdminCart[];
   wishlists: AdminWishlist[];
   customers: AdminCustomer[];
+  admins: AdminCustomer[];
 }
 
 const fetchAdminDashboard = async () => {

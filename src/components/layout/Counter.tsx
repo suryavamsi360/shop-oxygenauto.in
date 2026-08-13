@@ -44,7 +44,7 @@ const Counter = ({
           type="button"
           onClick={() => addToCart(itemId, maxStock)}
           aria-label="Increase quantity"
-          className={`flex items-center justify-center rounded bg-[#0D542B] font-semibold text-white transition hover:bg-[#093F20] active:translate-y-px ${compact ? "size-6 text-sm" : "size-8 text-lg"}`}
+          className={`flex items-center justify-center rounded bg-[#187A45] font-semibold text-white transition hover:bg-[#126638] active:translate-y-px ${compact ? "size-6 text-sm" : "size-8 text-lg"}`}
         >
           +
         </button>

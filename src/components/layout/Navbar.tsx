@@ -68,7 +68,7 @@ const Navbar = () => {
           />
           <button
             type="submit"
-            className="absolute right-1 top-1 h-9 rounded-md bg-[#0D542B] px-4 text-xs font-bold uppercase text-white transition hover:bg-[#093F20]"
+            className="absolute right-1 top-1 h-9 rounded-md bg-[#187A45] px-4 text-xs font-bold uppercase text-white transition hover:bg-[#126638]"
           >
             Search
           </button>
@@ -83,7 +83,7 @@ const Navbar = () => {
               className={({ isActive }) =>
                 `flex min-h-11 items-center gap-2 rounded-md border px-3 transition ${
                   isActive
-                    ? "border-[#0D542B] bg-[#0D542B] text-white"
+                    ? "border-[#187A45] bg-[#187A45] text-white"
                     : "border-[#B8D8C2] bg-[#E5F3EA] text-[#0D542B] hover:bg-[#D8EDDF]"
                 }`
               }
@@ -168,7 +168,7 @@ const Navbar = () => {
           <button
             type="submit"
             aria-label="Search catalogue"
-            className="absolute right-1 top-1 flex size-8 items-center justify-center rounded bg-[#0D542B] text-white transition hover:bg-[#093F20]"
+            className="absolute right-1 top-1 flex size-8 items-center justify-center rounded bg-[#187A45] text-white transition hover:bg-[#126638]"
           >
             <Search size={16} />
           </button>

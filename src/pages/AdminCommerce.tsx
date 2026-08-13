@@ -21,7 +21,7 @@ import {
 import { useAuthStore } from "../store/authStore";
 import { formatMoney, getCurrencySymbol } from "../utils/currency";
 
-const TABS = ["orders", "carts", "wishlists", "customers"] as const;
+const TABS = ["orders", "carts", "wishlists", "customers", "admins"] as const;
 const ORDER_STATUSES: OrderStatus[] = [
   "pending",
   "accepted",
@@ -160,17 +160,10 @@ const AdminCommerce = () => {
       ),
     [dashboard?.wishlists, normalizedSearch],
   );
-  const commerceCustomers = useMemo(
-    () =>
-      (dashboard?.customers || []).filter(
-        (customer) => customer.role.toLowerCase() !== "admin",
-      ),
-    [dashboard?.customers],
-  );
   const filteredCustomers = useMemo(
     () =>
       descendingByDate(
-        commerceCustomers.filter((customer) =>
+        (dashboard?.customers || []).filter((customer) =>
           [customer.email, customer.phone, customer.name, customer.city]
             .join(" ")
             .toLowerCase()
@@ -178,11 +171,25 @@ const AdminCommerce = () => {
         ),
         (customer) => customer.lastUpdatedAt,
       ),
-    [commerceCustomers, normalizedSearch],
+    [dashboard?.customers, normalizedSearch],
   );
-  const selectedCustomer = dashboard?.customers.find(
-    (customer) => customer.id === selectedCustomerId,
+  const filteredAdmins = useMemo(
+    () =>
+      descendingByDate(
+        (dashboard?.admins || []).filter((admin) =>
+          [admin.email, admin.phone, admin.name, admin.city]
+            .join(" ")
+            .toLowerCase()
+            .includes(normalizedSearch),
+        ),
+        (admin) => admin.lastUpdatedAt,
+      ),
+    [dashboard?.admins, normalizedSearch],
   );
+  const selectedCustomer = [
+    ...(dashboard?.customers || []),
+    ...(dashboard?.admins || []),
+  ].find((customer) => customer.id === selectedCustomerId);
   const openCustomer = (customerId: string | null) => {
     if (customerId) setSelectedCustomerId(customerId);
   };
@@ -265,7 +272,8 @@ const AdminCommerce = () => {
       (total, wishlist) => total + wishlist.itemCount,
       0,
     ),
-    customers: commerceCustomers.length,
+    customers: dashboard.summary.customers,
+    admins: dashboard.summary.admins,
   };
 
   return (
@@ -592,6 +600,57 @@ const AdminCommerce = () => {
                   </td>
                   <td className="p-3 text-xs">
                     {formatDate(customer.lastUpdatedAt)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {activeTab === "admins" && (
+          <table className="w-full min-w-[1050px] text-left text-sm">
+            <thead className="bg-[#F5F7F3] text-xs uppercase text-[#68706A]">
+              <tr>
+                <th className="p-3">Admin</th>
+                <th className="p-3">Phone</th>
+                <th className="p-3">Location</th>
+                <th className="p-3">Carts</th>
+                <th className="p-3">Wishlist</th>
+                <th className="p-3">Joined</th>
+                <th className="p-3">Last sign-in</th>
+                <th className="p-3">Last updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAdmins.map((admin) => (
+                <tr key={admin.id} className="border-t border-[#E1E5DF]">
+                  <td className="p-3">
+                    <button
+                      type="button"
+                      onClick={() => openCustomer(admin.id)}
+                      className="text-left"
+                    >
+                      <span className="block font-medium text-[#0D542B] underline underline-offset-2">
+                        {admin.name || "Administrator"}
+                      </span>
+                      <span className="block text-xs text-[#68706A]">
+                        {admin.email}
+                      </span>
+                    </button>
+                  </td>
+                  <td className="p-3">{admin.phone || "-"}</td>
+                  <td className="p-3">
+                    {[admin.city, admin.state].filter(Boolean).join(", ") ||
+                      "-"}
+                  </td>
+                  <td className="p-3">{admin.cartCount}</td>
+                  <td className="p-3">{admin.wishlistCount}</td>
+                  <td className="p-3 text-xs">{formatDate(admin.createdAt)}</td>
+                  <td className="p-3 text-xs">
+                    {formatDate(admin.lastSignInAt)}
+                  </td>
+                  <td className="p-3 text-xs">
+                    {formatDate(admin.lastUpdatedAt)}
                   </td>
                 </tr>
               ))}

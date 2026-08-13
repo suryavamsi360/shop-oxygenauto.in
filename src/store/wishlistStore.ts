@@ -19,6 +19,7 @@ interface WishlistState {
   isAccountMode: boolean;
   replaceItems: (itemIds: string[], isAccountMode?: boolean) => void;
   clearItems: () => void;
+  removeItem: (itemId: string) => void;
   toggleItem: (itemId: string) => boolean;
   useGuestWishlist: () => void;
 }
@@ -39,6 +40,15 @@ export const useWishlistStore = create<WishlistState>((set) => ({
         window.localStorage.setItem(STORAGE_KEY, "[]");
       }
       return { itemIds: [] };
+    }),
+
+  removeItem: (itemId) =>
+    set((state) => {
+      const itemIds = state.itemIds.filter((value) => value !== itemId);
+      if (!state.isAccountMode && typeof window !== "undefined") {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(itemIds));
+      }
+      return { itemIds };
     }),
 
   toggleItem: (itemId) => {

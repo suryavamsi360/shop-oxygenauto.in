@@ -5,15 +5,20 @@ import { Link } from "react-router-dom";
 import Loading from "../components/layout/Loading";
 import ProductCard from "../components/layout/ProductCard";
 import { syncAccountCart, syncGuestCart } from "../services/cartSyncService";
-import { clearWishlist as clearAccountWishlist } from "../services/wishlistService";
+import {
+  clearWishlist as clearAccountWishlist,
+  removeWishlistItem,
+} from "../services/wishlistService";
 import { useAuthStore } from "../store/authStore";
 import { useCartStore } from "../store/cartStore";
 import { useProductStore } from "../store/productStore";
 import { useWishlistStore } from "../store/wishlistStore";
+import type { ProductListItem } from "../types/product";
 
 const Wishlist = () => {
   const itemIds = useWishlistStore((state) => state.itemIds);
   const clearWishlist = useWishlistStore((state) => state.clearItems);
+  const removeItem = useWishlistStore((state) => state.removeItem);
   const user = useAuthStore((state) => state.user);
   const cartItems = useCartStore((state) => state.cartItems);
   const replaceCart = useCartStore((state) => state.replaceCart);
@@ -84,6 +89,38 @@ const Wishlist = () => {
       );
     } finally {
       setPendingAction(null);
+    }
+  };
+
+  const handleMoveToCart = async (product: ProductListItem) => {
+    const nextCart = {
+      ...cartItems,
+      [product.itemId]: Math.min(
+        (cartItems[product.itemId] || 0) + 1,
+        product.stockQuantity,
+      ),
+    };
+
+    setActionError("");
+    try {
+      const savedCart = user
+        ? await syncAccountCart(nextCart)
+        : await syncGuestCart(nextCart);
+      replaceCart(
+        savedCart
+          ? Object.fromEntries(
+              savedCart.items.map((item) => [item.itemId, item.quantity]),
+            )
+          : nextCart,
+      );
+      if (user) await removeWishlistItem(product.itemId);
+      removeItem(product.itemId);
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to move this item to the cart.",
+      );
     }
   };
 
@@ -159,7 +196,11 @@ const Wishlist = () => {
       {products.length > 0 ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {products.map((product) => (
-            <ProductCard key={product.itemId} product={product} />
+            <ProductCard
+              key={product.itemId}
+              product={product}
+              onAddToCart={handleMoveToCart}
+            />
           ))}
         </div>
       ) : (
@@ -169,7 +210,7 @@ const Wishlist = () => {
           </p>
           <Link
             to="/products"
-            className="mt-4 inline-flex min-h-11 items-center rounded-md bg-[#0D542B] px-5 text-sm font-semibold text-white hover:bg-[#093F20]"
+            className="mt-4 inline-flex min-h-11 items-center rounded-md bg-[#187A45] px-5 text-sm font-semibold text-white hover:bg-[#126638]"
           >
             Browse products
           </Link>
